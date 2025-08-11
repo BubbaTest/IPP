@@ -1,0 +1,70 @@
+<style> 
+  #analista {
+      text-align: center; /* Centra el texto dentro del párrafo */
+      color: rgb(132, 134, 134); /* Cambia el color del texto a azul */
+      font-weight: bold; /* Hace el texto en negrita */
+  }
+
+  .margin-right-10 {
+    margin-right: 10px;
+  }
+</style>
+<div class="container mt-5 text-center">
+  <fieldset class="border p-3 mb-3">
+    <legend >Preparar Base de Datos</legend>
+    <div class="row  justify-content-center">
+      <p id="analista">Debe tener conexión para realizar estas acciones.</p>
+      <div class="col-md-3">
+        <div class="form-group">
+            <input type="text" id="empleado" class="form-control" placeholder="Empleado">
+            <input type="password" id="pass" class="form-control mt-1" placeholder="Clave" style="display:none;">
+        </div>
+      </div>
+    </div>
+  </fieldset>
+  <div class="row  justify-content-center">
+    <div id="spinner" class="spinner-border text-primary justify-content-center" role="status" style="display: none;">
+      <span class="visually-hidden">Cargando...</span>
+    </div>
+  </div>
+  <div class="row  justify-content-center">
+    <div class="col-md-6 d-flex justify-content-center">
+      <button  type="button" class="btn btn-primary" id="btnAutorizar" style="display:none;" data-tabcontinuar="data-tabcontinuar" onclick="AutorizarFueraPeriodo()">
+        <span>Autorizar Usuarios</span>
+        <span class="fa fa-database"></span>
+      </button>
+      <button  type="button" class="btn btn-primary margin-right-10" id="btnUsuario" data-tabcontinuar="data-tabcontinuar" onclick="ImportaU()">
+        <span>Importar Usuarios</span>
+        <span class="fa fa-database"></span>
+      </button>
+      <button type="button" class="btn btn-primary margin-right-10" id="btnCatalogos" data-tabcontinuar="data-tabcontinuar" onclick="ImportaCatalogos()" disabled>
+          <span>Importar Catalogos</span>
+          <span class="fa fa-database"></span>
+      </button>
+      <button type="button" class="btn btn-primary margin-right-10" id="btnMuestra" data-tabcontinuar="data-tabcontinuar" onclick="ImportaMuestra()" disabled>
+          <span>Importar Muestra</span>
+          <span class="fa fa-database"></span>
+      </button>
+    </div>
+  </div>
+  <div class="row  justify-content-center mt-1">
+    <div class="col-md-6 d-flex justify-content-center">
+      <button type="button" class="btn btn-primary margin-right-10" id="btnPrevio" data-tabcontinuar="data-tabcontinuar" onclick="ImportaPrevio()" disabled>
+          <span>Importar Muestra Previa</span>
+          <span class="fa fa-database"></span>
+      </button>
+      <button type="button" class="btn btn-warning margin-right-10" id="btnReiniciar" data-tabcontinuar="data-tabcontinuar" onclick="LimpiarBase()">
+        <span>Reinicar</span>
+        <span class="fa fa-database"></span>
+      </button>
+      <button type="button" class="btn btn-success margin-right-10" data-tabcontinuar="data-tabcontinuar" id="btn-Descargar" value="Descargar" onclick="exportarBaseDeDatos('IPP')">
+        <span>Descargar</span>
+        <span class="fa fa-database"></span>
+      </button>
+      <button type="button" class="btn btn-danger margin-right-10" id="btlEliminaBase" data-tabcontinuar="data-tabcontinuar" onclick="EliminarBase()" disabled>
+        <span>Eliminar</span>
+        <span class="fa fa-database"></span>
+      </button>
+    </div>
+   </div>
+</div>

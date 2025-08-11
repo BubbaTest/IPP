@@ -1,0 +1,47 @@
+<style> 
+  #analista {
+      text-align: center; /* Centra el texto dentro del párrafo */
+      color: rgb(132, 134, 134); /* Cambia el color del texto a azul */
+      font-weight: bold; /* Hace el texto en negrita */
+  }
+</style>
+<div class="container mt-5 text-center">
+  <fieldset class="border p-3 mb-3">
+    <legend >Establecimientos con Variedades</legend>
+    <div class="row  justify-content-center">
+      <p id="analista">Debe tener conexión para realizar esta acción.</p>
+      <div class="col-md-3">
+        <div class="form-group">
+            <input type="text" id="empleado" class="form-control" placeholder="Empleado">
+        </div>
+      </div>
+    </div>
+  </fieldset>
+
+  <div class="row  justify-content-center mt-1">   
+    <div class="col-md-6 d-flex justify-content-center">
+      <button type="button" class="btn btn-success" id="btnValidar" data-tabcontinuar="data-tabcontinuar" onclick="ValidarMuestra()">
+        <span>Validar</span>
+        <span class="fa fa-database"></span>
+      </button>
+    </div>
+   </div>
+</div>
+
+<!-- Modal para mostrar informantes con variedades faltantes -->
+<div class="modal fade" id="modalFaltantes" tabindex="-1" aria-labelledby="modalFaltantesLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-warning text-dark">
+        <h5 class="modal-title" id="modalFaltantesLabel">Informante con Faltantes</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body" id="modalFaltantesBody">
+        <!-- Aquí se insertará la lista dinámicamente -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>

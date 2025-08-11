@@ -1,0 +1,400 @@
+<style>
+  .container {
+    max-width: 100%;
+    background: #fff;
+    padding: 5;   
+  }  
+
+  /* Estilo personalizado para opciones marcadas */
+  .informante-datos-hoy {
+    background-color: #e6c50b !important; /* Amarillo claro, importante para override */
+    color: #000 !important;
+    font-weight: 700;
+  }
+
+  /* Contenedor de la tabla */
+  #resultadovariedad {
+      font-size: 10px;
+      width: 100%;
+      overflow: hidden;
+  }
+
+  .row {
+      margin-bottom: 0; /* Elimina márgenes entre filas */
+    }
+   
+    table {
+      line-height: 1; /* Establece el interlineado al mínimo */
+      margin: 0; /* Elimina márgenes adicionales */
+      padding: 0; /* Elimina relleno adicional */
+      border-collapse: collapse; /* Colapsa bordes de la tabla */
+    }
+
+    /* Tabla: ancho completo y sin expansión descontrolada */
+    .tabla-variedad {
+        width: 100%;
+        table-layout: fixed; /* ⚠️ Esencial: fuerza distribución fija de columnas */
+        border-collapse: collapse;
+        line-height: 1;
+        margin: 0;
+    }
+
+    .tabla-variedad th,
+    .tabla-variedad td {
+        padding: 5px;
+        border: 1px solid #ddd;
+        text-align: left;
+        white-space: normal; /* ✅ Permite saltos de línea */
+        word-wrap: break-word; /* Rompe palabras largas */
+        overflow-wrap: break-word; /* Moderno, reemplaza word-wrap */
+    }
+
+    /* Columna de Especificación: controla el ancho */
+    .tabla-variedad .especificacion-cell {
+        width: 120px; /* Ajusta según necesidad: 30-40% del ancho total */
+        max-width: 120px;
+        white-space: normal !important;
+        word-break: break-word;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        vertical-align: top; /* Opcional: alinea arriba */
+    }
+
+    /* Ajuste de otras columnas para equilibrio */
+    .tabla-variedad th:nth-child(1),
+    .tabla-variedad td:nth-child(1),
+    .tabla-variedad th:nth-child(2),
+    .tabla-variedad td:nth-child(2) {
+        width: 60px; /* Precio: ancho fijo pequeño */
+    }
+
+    .tabla-variedad th:nth-child(3),
+    .tabla-variedad td:nth-child(3) {
+        width: 80px; /* Estado: ancho moderado */
+    }
+    
+
+  /* Tabla responsive 
+  .table-responsive {
+      overflow-x: auto;
+      margin-top: 20px;
+  } */
+
+  th, td {
+      padding: 5px 12px;
+      border: 1px solid #ddd;
+      text-align: left;
+      white-space: nowrap;
+  }
+
+  td {
+      padding: 1px; /* Ajusta el relleno de las celdas */
+    }
+
+  th {
+      background-color: #f5f5f5;
+      font-weight: bold;
+  }
+
+  tr:hover {
+      background-color: #f1f1f1;
+  }
+
+  /* Estilos para botones que NO tengan la clase .buttones */
+  .btn:not(.buttones) {
+      display: inline-block;
+      padding: 6px 12px;
+      font-size: 14px;
+      border-radius: 4px;
+      text-decoration: none;
+      color: #fff;
+      background-color: #2812f3;
+      border: none;
+      cursor: pointer;
+  }
+  .btn:not(.buttones):hover {
+      background-color: #e67e22;
+  }
+ 
+  .no-data {
+      text-align: center;
+      padding: 20px;
+      color: #888;
+  }
+
+  summary {
+      cursor: pointer;
+      list-style: none; /* Quitar marcador por defecto */
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1rem;
+      color: #007bff; /* Color azul moderno */
+    }
+
+  #analista {
+      text-align: center; /* Centra el texto dentro del párrafo */
+      color: rgb(132, 134, 134); /* Cambia el color del texto a azul */
+      font-weight: bold; /* Hace el texto en negrita */
+  }
+
+  textarea {
+    flex: 1 1 auto;
+    width: 100%;
+    box-sizing: border-box;
+    resize: none;
+    field-sizing: content;
+    min-height: 100px;
+  }
+</style>
+
+<!-- Modal de confirmacion -->
+<div id="modalConfirmacion" class="modal fade" tabindex="-1" aria-labelledby="exampleModalLabel">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Confirmación</h5>
+            </div>
+            <div class="modal-body">
+                ¿Estás seguro de que no se realizara la entrevista?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="btnCancelar">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnConfirmar">Confirmar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+  <div class="row  justify-content-center mb-1">
+    <div class="col-md-2  mt-1">
+      <div class="form-group">
+        <label class="has-float-label" title="Canasta">
+          <select id="canastaSelect" class="form-select sel" aria-label="Seleccionar canasta" required data-placeholder="Seleccionar opción">
+            <option value="" disabled selected>Seleccionar canasta</option>
+          </select>
+          <span>Canasta:</span>
+        </label>
+      </div>
+    </div>
+    <div class="col-md-2  mt-1">
+      <div class="form-group">
+        <label class="has-float-label" data-toggle="tooltip" data-placement="top" title="Municipio">
+          <select id="municipioSelect" class="form-select sel" aria-label="Default select example" required>
+          </select>
+          <span>Municipio:</span>
+        </label>
+      </div>
+    </div>
+    <div class="col-md-2  mt-1">
+      <div class="form-group">
+        <label class="has-float-label" data-toggle="tooltip" data-placement="top" title="Fecha Recolección">
+          <input type="datetime-local" id="fechaInput" class="form-control" aria-label="Fecha y hora" disabled required>
+          <span>Fecha Recolección:</span>
+        </label>
+      </div>
+    </div>
+  </div>
+  <div class="row  justify-content-center mb-1">
+    <div class="col-md-3  mt-1">
+      <div class="form-group">
+        <label class="has-float-label" data-toggle="tooltip" data-placement="top" title="Causal">
+          <select id="causalSelect" class="form-select sel" aria-label="Default select example" required>
+          </select>
+          <span>Causal:</span>
+        </label>
+      </div>
+    </div>
+    <div class="col-md-3  mt-1">
+      <div class="form-group">
+        <label class="has-float-label" data-toggle="tooltip" data-placement="top" title="Establecimiento">
+          <select id="establecimientoSelect" class="form-select sel" aria-label="Default select example" required disabled>
+          </select>
+          <span>Establecimiento:</span>
+        </label>
+      </div>
+    </div>
+  </div>
+  <div class="row  justify-content-center mb-1">
+    <div class="col-md-5 mt-1">
+      <div class="form-group">
+        <label class="has-float-label" data-toggle="tooltip" data-placement="top" title="Observaciones">
+          <textarea id="observacionesInput" class="form-control"></textarea>
+          <span>Observaciones:</span>
+        </label>
+      </div>
+    </div>
+    <div class="col-md-1  mt-1">
+      <div class="form-group">
+        <button type="button" id="filtrarBtn" class="btn btn-primary btn-sm" disabled>Procesar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container mt-1" id="frmDetalle" >
+  <div class="row  justify-content-center mb-2">
+    <div class="col-md-4 mt-1">
+      <div class="form-group">
+        <label class="has-float-label" data-toggle="tooltip" data-placement="top" title="Razón Social">
+          <input type="text" id="razonsocialInput" class="form-control" placeholder="Razon Social" aria-label="Razón Social" required>
+          <span>Razón Social:</span>
+        </label>
+      </div>
+    </div>
+    <div class="col-md-2 mt-1">
+      <div class="form-group">
+        <label class="has-float-label" data-toggle="tooltip" data-placement="top" title="Teléfono">
+          <input type="text" id="telefonoInput" class="form-control" placeholder="Teléfono" aria-label="Teléfono" required>
+          <span>Teléfono:</span>
+        </label>
+      </div>
+    </div>
+  </div>
+  <div class="row  justify-content-center mb-2">
+    <div class="col-md-3 mt-1">
+      <div class="form-group">
+        <label class="has-float-label" data-toggle="tooltip" data-placement="top" title="Encargado">
+          <input type="text" id="encargadoInput" class="form-control" placeholder="Encargado" aria-label="Encargado" required>
+          <span>Encargado:</span>
+        </label>
+      </div>
+    </div>
+    <div class="col-md-3 mt-1">
+      <div class="form-group">
+        <label class="has-float-label" data-toggle="tooltip" data-placement="top" title="Cargo">
+          <input type="text" id="cargoInput" class="form-control" placeholder="Cargo" aria-label="Cargo" required>
+          <span>Cargo:</span>
+        </label>
+      </div>
+    </div>
+  </div>
+  <div class="row  justify-content-center mb-2">
+    <div class="col-md-5 mt-1">
+      <div class="form-group">
+        <label class="has-float-label" data-toggle="tooltip" data-placement="top" title="Dirección">
+          <input type="text" id="direccionlInput" class="form-control" placeholder="Dirección" aria-label="Dirección" required>
+          <span>Dirección:</span>
+        </label>
+      </div>
+    </div>
+    <div class="col-md-1 mt-1">
+      <div class="form-group">
+        <label class="has-float-label" data-toggle="tooltip" data-placement="top" title="Día Habil">
+          <input type="number" id="diahabilInput" class="form-control" placeholder="Día Habil" aria-label="Día Habil" required>
+          <span>Día Habil:</span>
+        </label>
+      </div>
+    </div>
+    <!-- <div class="col-md-1 mt-1">
+        <div class="form-group" id="datoestablecimientochk">
+            <label class="input-control checkbox small-check">
+              <input type="checkbox" id="establecimientosi" class="schk" value="true">
+              <span class="check"></span>
+              <span class="caption">Actualizar</span>
+            </label>
+        </div>
+    </div> -->
+  </div>
+</div>
+
+<!-- <div class="container">
+  <div class="row justify-content-center">
+    <div class="col-md-6" id="resultadoestablecimiento">
+    </div>
+  </div>
+</div> -->
+
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="col-md-6" id="resultadovariedad">
+    </div>
+  </div>
+</div>
+
+<div class="container mt-1" id="variedadDetalle" style="display: none;">
+ <button type="button" class="btn btn-primary buttones" style="z-index: 100 !important; border-radius:50%;position:fixed;right: 9px;bottom: 200px;width: 50px;font-size: 20px;" data-toggle="tooltip" data-placement="top" title="Guardar" id="guardarBtn">
+    <span class="bi bi-floppy2-fill"></span>
+  </button>
+  <button type="button" class="btn btn-secondary buttones" style="z-index: 100 !important; border-radius:50%;position:fixed;right: 9px;bottom: 150px;width: 50px;font-size: 20px;" data-toggle="tooltip" data-placement="top" title="Limpiar" id="limpiarBtn">
+      <span class="bi bi-file-plus"></span>
+  </button>
+  <div class="row  justify-content-center mb-2">
+    <div class="col-md-3 mt-1">
+      <div class="form-group">
+        <label class="has-float-label" data-toggle="tooltip" data-placement="top" title="Variedad">
+          <select id="variedadSelect" class="form-select sel" aria-label="Default select example" required>
+          </select>
+          <span>Variedad:</span>
+        </label>
+      </div>
+    </div>
+    <div class="col-md-2 mt-1">
+      <div class="form-group">
+        <label class="has-float-label" data-toggle="tooltip" data-placement="top" title="Estado">
+          <select id="estadoSelect" class="form-select sel" aria-label="Default select example" required>
+          </select>
+          <span>Estado:</span>
+        </label>
+      </div>
+    </div>
+  </div>
+  <div class="row  justify-content-center mb-2">
+    <div class="col-md-2 mt-1">
+      <div class="form-group">
+        <label class="has-float-label" data-toggle="tooltip" data-placement="top" title="Und Med">
+          <select id="undmedSelect" class="form-select sel" aria-label="Default select example" required disabled>
+          </select>
+          <span>Und Med:</span>
+        </label>
+      </div>
+    </div>
+    <div class="col-md-2 mt-1">
+      <div class="form-group">
+        <label class="has-float-label" data-toggle="tooltip" data-placement="top" title="Cantidad">
+          <input type="number" id="cantidadInput" class="form-control" placeholder="Cantidad" aria-label="Cantidad" min="0" max="1000" value="1" step="1" required disabled>
+          <span>Cantidad:</span>
+        </label>
+      </div>
+    </div>
+    <div class="col-md-2 mt-1">
+      <div class="form-group">
+        <label class="has-float-label" data-toggle="tooltip" data-placement="top" title="Precio">
+          <input type="number" id="precioInput" class="form-control" placeholder=" " aria-label="Precio" value="0" step="0.01"
+           min="0" pattern="^\d+(\.\d{1,2})?$" oninput="validateDecimal(this)" required>
+          <span>Precio:</span>
+        </label>
+      </div>
+    </div>
+  </div>
+  <div class="row  justify-content-center mb-2">
+    <div class="col-md-2 mt-1">
+      <div class="form-group">
+        <label class="has-float-label" data-toggle="tooltip" data-placement="top" title="Moneda">
+          <select id="monedaSelect" class="form-select sel" aria-label="Default select example" required>
+          </select>
+          <span>Moneda:</span>
+        </label>
+      </div>
+    </div>
+    <div class="col-md-2 mt-1">
+      <div class="form-group">
+        <label class="has-float-label" data-toggle="tooltip" data-placement="top" title="Precio Calculado">
+          <input type="number" id="preciocalculadoInput" class="form-control" placeholder=" " aria-label="Precio Calculado" value="0" 
+           min="0" pattern="^\d+(\.\d{1,2})?$" oninput="validateDecimal(this)" required disabled>
+          <span>Precio Calculado:</span>
+        </label>
+      </div>
+    </div>
+    <div class="col-md-2 mt-1">
+      <div class="form-group">
+        <label class="has-float-label" data-toggle="tooltip" data-placement="top" title="Observaciones">
+          <textarea id="observaciones2Input" class="form-control"></textarea>
+          <span>Observaciones:</span>
+        </label>
+      </div>
+    </div>
+  </div>
+</div>
+<input type="hidden" id="hiddenPrecioAnterior">

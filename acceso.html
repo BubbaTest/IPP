@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <meta name="theme-color" content="#09F">
+    <title>IPP</title>
+    <link rel="icon" href="img/icon-192.png" type="image/png">
+    <link rel="stylesheet" href="Content/bootstrap.min.css">
+    <!-- <link rel="manifest" href="/manifest.json"> -->
+    <!-- <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('Service Worker registrado con éxito:', registration);
+                    })
+                    .catch(error => {
+                        console.error('Error registrando Service Worker:', error);
+                    });
+            });
+        }
+    </script> -->
+    <script src="Scripts/dexie.js"></script>
+    <script async src="Controller/BaseDatos.js"></script>
+    <style>
+        body {
+            background-color: #0d6efd; /* Color de fondo suave */
+        }
+
+        #login-form {
+            background-color: white; /* Fondo blanco para el formulario */
+            padding: 5px; /* Espaciado interno */
+            border-radius: 8px; /* Bordes redondeados */
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Sombra suave */
+            margin-top: 10px; /* Espacio superior reducido */
+        }
+
+        .form-label {
+            font-weight: bold; /* Negrita para las etiquetas */
+            color:blue
+        }
+
+        .table {
+            margin: 0; /* Eliminar márgenes de la tabla */
+        }
+
+        .table img {
+            max-width: 80%; /* Asegurar que la imagen no exceda el ancho de la celda */
+            height: auto; /* Mantener la proporción de la imagen */
+        }
+
+        .alert {
+            margin-top: 5px; /* Espacio entre el formulario y el mensaje de error */
+        }
+
+        #error-message {
+            margin-top: 5px; /* Espacio superior reducido para el mensaje de error */
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-2">
+        <table class="table table-borderless text-center">
+            <tbody>
+                <tr>
+                <td style="width: 10%;"><img alt="Inide Logo" src="img/Inide.png"></td>
+            </tr>
+            <tr>
+                <td>
+                    <div style="text-align:center; color: #edf0f1;">
+                        <h4>INDICE DE PRECIOS AL PRODUCTOR</h4>
+                    </div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <div id="error-message" class="alert alert-danger d-none" role="alert"></div>
+        <div class="container d-flex justify-content-center align-items-center" style="min-height: 40vh;">
+            <form id="login-form" class="w-100" style="max-width: 400px;">
+                <div class="mb-3">
+                    <label for="usuarioId" class="form-label">Usuario</label>
+                    <input type="text" class="form-control" id="usuarioId" required>
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Contraseña</label>
+                    <input type="password" class="form-control" id="password" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">Iniciar Sesión</button>
+                <label>v1.0.0</label>
+            </form>
+        </div>
+    </div>
+    <script>
+        const errorMessageDiv = document.getElementById('error-message');
+        errorMessageDiv.classList.add('d-none');
+
+        document.getElementById('login-form').addEventListener('submit', async function(event) {
+            event.preventDefault(); // Evitar el envío del formulario
+
+            const usuarioId = document.getElementById('usuarioId').value;
+            let password = document.getElementById('password').value;
+
+            // CODIFICAR LA CONTRASEÑA EN BASE64
+            password = Base64.encode(password);
+            // HASHEAR LA CONTRASEÑA USANDO SHA-1
+            password = await hashPassword(password);
+
+            try {
+                const isValid = await validarLogin(usuarioId, password.toUpperCase());
+                //const errorMessageDiv = document.getElementById('error-message');
+
+                if (isValid) {
+                    localStorage.removeItem('Benutzer');
+                    localStorage.setItem('Benutzer', usuarioId);
+                    // Redirigir a la vista layout.html
+                    if (usuarioId === "administrador" || usuarioId === "Autoriza") { window.location.href = 'layoutadmin.html'; // Cambia esto a la ruta de tu vista
+                    } else { window.location.href = 'layoutusuario.html'; } // Cambia esto a la ruta de tu vista                    
+                } else {
+                    // Mostrar mensaje de error
+                    errorMessageDiv.textContent = 'Credenciales inválidas. Intenta de nuevo.';
+                    errorMessageDiv.classList.remove('d-none');
+                }
+            } catch (error) {
+                //console.error("Error al hashear la contraseña:", error);
+                errorMessageDiv.textContent = 'Ocurrió un error al procesar la contraseña. Inténtalo de nuevo.';
+                errorMessageDiv.classList.remove('d-none');
+            }            
+        });        
+
+        window.addEventListener('load',  async function() {
+            await IniciarBaseDatos();
+        });  
+
+        // Bloqueo de atajos de teclado
+        document.addEventListener("keydown", function(e) {
+            // Bloquear F12
+            if (e.key === "F12") {
+                e.preventDefault();
+                errorMessageDiv.textContent = 'La función de inspección está deshabilitada.';
+                errorMessageDiv.classList.remove('d-none');
+                return false;
+            }
+            
+            // Bloquear Ctrl+U (Ver código fuente)
+            if (e.ctrlKey && e.key === "u") {
+                e.preventDefault();
+                errorMessageDiv.textContent = 'No puedes ver el código fuente de esta página.';
+                errorMessageDiv.classList.remove('d-none');
+                return false;
+            }
+            
+            // Bloquear Ctrl+Shift+I y Ctrl+Shift+J
+            if (e.ctrlKey && e.shiftKey && (e.key === "I" || e.key === "J")) {
+                e.preventDefault();
+                errorMessageDiv.textContent = 'Acceso a herramientas de desarrollador deshabilitado.';
+                errorMessageDiv.classList.remove('d-none');
+                return false;
+            }
+            
+            // Bloquear el menú contextual (clic derecho)
+            if (e.key === "ContextMenu") {
+                e.preventDefault();
+                return false;
+            }
+        });
+
+    </script>
+    <script>
+        var Base64 = {
+            // private property
+            _keyStr: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",
+    
+            // public method for encoding
+            encode: function (input) {
+                var output = "";
+                var chr1, chr2, chr3, enc1, enc2, enc3, enc4;
+                var i = 0;
+    
+                input = Base64._utf8_encode(input);
+    
+                while (i < input.length) {
+                    chr1 = input.charCodeAt(i++);
+                    chr2 = input.charCodeAt(i++);
+                    chr3 = input.charCodeAt(i++);
+    
+                    enc1 = chr1 >> 2;
+                    enc2 = ((chr1 & 3) << 4) | (chr2 >> 4);
+                    enc3 = ((chr2 & 15) << 2) | (chr3 >> 6);
+                    enc4 = chr3 & 63;
+    
+                    if (isNaN(chr2)) {
+                        enc3 = enc4 = 64;
+                    } else if (isNaN(chr3)) {
+                        enc4 = 64;
+                    }
+    
+                    output = output +
+                        this._keyStr.charAt(enc1) + this._keyStr.charAt(enc2) +
+                        this._keyStr.charAt(enc3) + this._keyStr.charAt(enc4);
+                }
+    
+                return output;
+            },
+    
+            // public method for decoding
+            decode: function (input) {
+                var output = "";
+                var chr1, chr2, chr3;
+                var enc1, enc2, enc3, enc4;
+                var i = 0;
+    
+                input = input.replace(/[^A-Za-z0-9\+\/\=]/g, "");
+    
+                while (i < input.length) {
+                    enc1 = this._keyStr.indexOf(input.charAt(i++));
+                    enc2 = this._keyStr.indexOf(input.charAt(i++));
+                    enc3 = this._keyStr.indexOf(input.charAt(i++));
+                    enc4 = this._keyStr.indexOf(input.charAt(i++));
+    
+                    chr1 = (enc1 << 2) | (enc2 >> 4);
+                    chr2 = ((enc2 & 15) << 4) | (enc3 >> 2);
+                    chr3 = ((enc3 & 3) << 6) | enc4;
+    
+                    output = output + String.fromCharCode(chr1);
+    
+                    if (enc3 != 64) {
+                        output = output + String.fromCharCode(chr2);
+                    }
+                    if (enc4 != 64) {
+                        output = output + String.fromCharCode(chr3);
+                    }
+                }
+    
+                output = Base64._utf8_decode(output);
+    
+                return output;
+            },
+    
+            // private method for UTF-8 encoding
+            _utf8_encode: function (string) {
+                string = string.replace(/\r\n/g, "\n");
+                var utftext = "";
+    
+                for (var n = 0; n < string.length; n++) {
+                    var c = string.charCodeAt(n);
+    
+                    if (c < 128) {
+                        utftext += String.fromCharCode(c);
+                    } else if ((c > 127) && (c < 2048)) {
+                        utftext += String.fromCharCode((c >> 6) | 192);
+                        utftext += String.fromCharCode((c & 63) | 128);
+                    } else {
+                        utftext += String.fromCharCode((c >> 12) | 224);
+                        utftext += String.fromCharCode(((c >> 6) & 63) | 128);
+                        utftext += String.fromCharCode((c & 63) | 128);
+                    }
+                }
+    
+                return utftext;
+            },
+    
+            // private method for UTF-8 decoding
+            _utf8_decode: function (utftext) {
+                var string = "";
+                var i = 0;
+                var c = c1 = c2 = 0;
+    
+                while (i < utftext.length) {
+                    c = utftext.charCodeAt(i);
+    
+                    if (c < 128) {
+                        string += String.fromCharCode(c);
+                        i++;
+                    } else if ((c > 191) && (c < 224)) {
+                        c2 = utftext.charCodeAt(i + 1);
+                        string += String.fromCharCode(((c & 31) << 6) | (c2 & 63));
+                        i += 2;
+                    } else {
+                        c2 = utftext.charCodeAt(i + 1);
+                        c3 = utftext.charCodeAt(i + 2);
+                        string += String.fromCharCode(((c & 15) << 12) | ((c2 & 63) << 6) | (c3 & 63));
+                        i += 3;
+                    }
+                }
+    
+                return string;
+            }
+        };
+    </script>
+</body>
+</html>

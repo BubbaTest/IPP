@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>IPC</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="icon" href="img/icon-192.png" type="image/png">
+    <!-- Estilos   bootstrap-icons-->
+    <link rel="stylesheet" href="Content/bootstrap.min.css">
+    <link rel="stylesheet" href="Content/bootstrap-float-label.css">
+    <link rel="stylesheet" href="Content/select2.min.css">
+    <link rel="stylesheet" href="Content/bootstrap-icons.css">
+    <link rel="stylesheet" href="Content/alertify/alertify.min.css">
+    <link rel="stylesheet" href="Content/alertify/default.min.css">
+    <link rel="stylesheet" href="Content/alertify/semantic.min.css">
+    <style>
+        @media (max-width: 768px) {
+        .container {
+            width: 100%;
+            }
+        }
+
+         body {
+            font-size: 14px; /* Cambia el tamaño de la fuente a 18px */
+        }
+
+        a, button {
+            -webkit-tap-highlight-color: rgba(0, 0, 0, 0); /* Sin color de resaltado */
+        }
+
+        #message {
+            text-align: center;
+        }
+
+        /* Estilo para los elementos de la lista en la barra de navegación */
+        .navbar-nav .nav-item .nav-link {
+            background-color: #0d6efd; /* Cambia el fondo a azul */
+            color: white; /* Cambia el color del texto a blanco */
+        }
+
+        /* Estilo para el dropdown */
+        .dropdown-menu {
+            background-color: #0d6efd; /* Cambia el fondo del menú desplegable a azul */
+        }
+
+        .dropdown-item {
+            color: white; /* Cambia el color del texto de los elementos del dropdown a blanco */
+        }
+
+        /* Cambia el color del texto al pasar el mouse sobre los elementos del dropdown */
+        .dropdown-item:hover {
+            background-color: #0a58ca; /* Cambia el fondo al pasar el mouse */
+            color: white; /* Asegúrate de que el texto siga siendo blanco */
+        }
+
+    </style>
+
+    <!-- <link rel="manifest" href="/manifest.json"> -->
+    <!-- <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('Service Worker registrado con éxito:', registration);
+                    })
+                    .catch(error => {
+                        console.error('Error registrando Service Worker:', error);
+                    });
+            });
+        }
+    </script> -->
+    <!-- Scripts principales -->
+    <script src="Scripts/bootstrap.bundle.min.js"></script>
+    <script src="Scripts/jquery-3.5.1.min.js"></script>
+    <script src="Scripts/dexie.js"></script>
+    <script src="Scripts/select2.min.js"></script>
+    <script src="Scripts/jquery.inputmask.bundle.js"></script>
+    <script src="Scripts/alertify.min.js"></script>
+</head>
+
+<body>
+    <!-- Modal de acceso denegado -->
+    <div id="modalAccesoDenegado" class="modal fade" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">Acceso Denegado</h5>
+                </div>
+                <div class="modal-body">
+                    <p id="mensajeModal" class="lead"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Barra de navegación -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">IPP</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menuUsuario" aria-controls="menuUsuario" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="menuUsuario">
+                <div class="navbar-nav">
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item"><a class="nav-link" href="#" onclick="loadView('GrabaMuestra.html'); collapseMenu()">Grabación</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#" onclick="loadView('ExportarMuestra.html'); collapseMenu()">Exportar</a></li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="pendientesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">Pendientes</a>
+                            <ul class="dropdown-menu" aria-labelledby="pendientesDropdown">
+                                <li><a class="dropdown-item" href="#" onclick="loadView('ListaEstablecimientosPendientes.html'); collapseMenu()">Establecimientos</a></li>
+                            </ul>
+                        </li>
+                        <li class="nav-item"><a class="nav-link" href="#" onclick="cerrarSesion()">Salir</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+
+    <!-- Contenedor principal -->
+    <main class="container py-4">
+         <!-- Mensaje de estado -->
+        <div id="message" class="alert d-none text-center mb-4" role="alert"></div>
+        <!-- Vista dinámica -->
+        <div id="cargavistas" class="card shadow-sm p-3 bg-white rounded"></div>
+    </main>
+
+    <!-- Inputs ocultos -->
+    <input type="hidden" id="hidden-usuarioId">
+    <input type="hidden" id="lblLongitud">
+    <input type="hidden" id="lblLatitud">
+
+    <script async src="Controller/BaseDatos.js"></script>
+    <script async src="Controller/Muestra.js"></script>
+
+    <script>   
+         // Función para colapsar el menú
+        function collapseMenu() {
+            const menu = document.getElementById('menuUsuario');
+            const collapse = new bootstrap.Collapse(menu, {
+                toggle: true
+            });
+        }
+        
+        const usuarioStr = localStorage.getItem('Benutzer'); 
+        if (!usuarioStr) {
+            document.getElementById("mensajeModal").textContent = "Debes iniciar sesión para acceder a esta página.";
+            new bootstrap.Modal(document.getElementById("modalAccesoDenegado")).show();
+            setTimeout(() => window.location.href = "acceso.html", 2000);
+        } else {
+            if (usuarioStr === 'administrador' || usuarioStr === 'Autoriza') {
+                document.getElementById("mensajeModal").textContent = "No tienes permisos para acceder a esta página.";
+                new bootstrap.Modal(document.getElementById("modalAccesoDenegado")).show();
+                setTimeout(() => window.location.href = "acceso.html", 2000);
+            }
+        }
+
+        // Función para cargar vistas
+        function loadView(view, callback) {
+            const cargavistas = document.getElementById('cargavistas');
+            fetch(view)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.text();
+                })
+                .then(data => {
+                    cargavistas.innerHTML = data; 
+
+                    if (view === 'GrabaMuestra.html') {                        
+                        setCurrentDateTime(); // Llamar a la función para establecer la fecha y hora actual
+                        initListarCombos(); // llamar la funcion para cargar select iniciales
+                        setupMuestraEventListeners(); // Configurar los event listeners para GrabaMuestra
+
+                        // 🔍 Inicializar Select2 después de cargar los datos                       
+                        $('.sel').select2({
+                            placeholder: $(this).data('placeholder') || 'Seleccionar opción',
+                            allowClear: true,
+                            width: '100%',
+                            // Asegura que el contenedor no interfiera con a11y
+                            dropdownParent: $(document.body),
+                            // Opcional: mejora de accesibilidad
+                            minimumResultsForSearch: 5
+                        });                        
+                    }
+                    else if (view === 'ListaEstablecimientosPendientes.html') {
+                        initListarCombos();                       
+                        
+                        // 🔍 Inicializar Select2 después de cargar los datos
+                        $('.sel').select2({
+                            placeholder: 'Seleccionar opción',
+                            allowClear: true,
+                            width: '100%'
+                        });
+                    }   
+                    
+                    // Ejecutar el callback si se proporciona
+                    if (typeof callback === 'function') {
+                        // Usamos setTimeout para asegurar que el DOM esté completamente renderizado
+                        setTimeout(() => {
+                            callback();
+                        }, 100); // Pequeño delay para asegurar que Select2 y demás estén listos
+                    }
+                })
+                .catch(error => {
+                    console.error('There was a problem with the fetch operation:', error);
+                });
+        }
+
+        function getLocation() {
+            setTimeout(() => {
+                const options = {
+                    enableHighAccuracy: true,
+                    timeout: 10000, // Aumentar el tiempo de espera a 10 segundos
+                    maximumAge: 60000 // Usar una ubicación almacenada en caché de hasta 1 minuto
+                };
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(useLocation, handleError, options);
+                } else {
+                    console.error("La geolocalización no es soportada por este navegador.");
+                    alert("La geolocalización no es soportada por este navegador.");
+                }
+            }, 2000); 
+        }
+
+        function useLocation(position) {            
+            document.getElementById("lblLongitud").value = position.coords.longitude;
+            document.getElementById("lblLatitud").value = position.coords.latitude;
+        };
+
+        // Función para manejar errores
+        function handleError(error) {
+            switch (error.code) {
+                case error.PERMISSION_DENIED:
+                    console.error("El usuario ha denegado la solicitud de geolocalización.");
+                    alert("Por favor, permite el acceso a la ubicación.");
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    console.error("La información de ubicación no está disponible.");
+                    alert("No se pudo obtener la ubicación. Intenta de nuevo más tarde.");
+                    break;
+                case error.TIMEOUT:
+                    console.error("La solicitud de geolocalización ha expirado.");
+                    alert("La solicitud de ubicación ha tardado demasiado. Intenta de nuevo.");
+                    break;
+                case error.UNKNOWN_ERROR:
+                    console.error("Se ha producido un error desconocido.");
+                    alert("Se ha producido un error al intentar obtener la ubicación. Intenta de nuevo.");
+                    break;
+            }
+        }
+
+        async function ValidarMuestra() {
+            const Empleado = document.querySelector('#empleado').value.toUpperCase();
+            
+             // Validar al menos un empleado seleccionado
+            if (!Empleado) {
+                mostrarMensaje('Por favor digite codigo empleado.', "error"); 
+                return;
+            }
+
+            try {
+                const result = await obtenerValidaMuestra(Empleado);
+                if (result.success) {
+                    mostrarMensaje(`Validación de muestra exitosa. ${result.message}`, "success");
+                } else {
+                    mostrarMensaje(`Error al validar muestra: ${result.message}`, "error");
+                }
+            } catch (error) {
+                mostrarMensaje(`Error inesperado: ${error.message}`, "error");
+            }
+        }        
+        
+        // Inicializar la base de datos al cargar la página
+        window.addEventListener('load', function() {
+            const usuarioId = localStorage.getItem('Benutzer');
+            $("#hidden-usuarioId").val(usuarioId);
+            
+            IniciarBaseDatos();
+        });        
+    
+        function cerrarSesion() {
+           localStorage.removeItem('Benutzer'); // Elimina el usuario de localStorage
+            //? document.cookie = "Benutzer=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+            window.location.href = "acceso.html";
+        }
+    
+         $(document).ready(function() {
+            // Seleccionamos todos los elementos .nav-item dentro del menú
+            $('.navbar-nav .nav-item').on('click', function () {
+                $(this).addClass('active').siblings().removeClass('active');
+            });
+        })
+    </script>
+</body>
+</html>
