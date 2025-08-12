@@ -344,12 +344,14 @@ function setupMuestraEventListeners() {
   //estado
   $('#estadoSelect').on('select2:select',  async function (e) { 
     if ($(this).val() != 16) { // no recolectado
-        $("#precioInput").prop("disabled", true);
+        $("#precioInput").prop("disabled", true);        
+        $("#undmedSelect").prop("disabled", true);
         $("#monedaSelect").val(42).trigger('change'); // Seleccionar C$ por defecto 
         $("#monedaSelect").prop("disabled", true);
     }
     else {
         $("#precioInput").prop("disabled", false);
+        $("#undmedSelect").prop("disabled", false);
         $("#monedaSelect").prop("disabled", false);
         $("#monedaSelect").val("CA").trigger('change');         
     }
@@ -573,6 +575,11 @@ async function InsertarRegistroCausal() {
         const encargado = document.getElementById('encargadoInput')?.value?.trim() || null;
         const cargo = document.getElementById('cargoInput')?.value?.trim() || null;
         const fechaStr = fechaInput?.value?.trim() || new Date().toISOString().split('T')[0];
+
+        const fechaActual = new Date();
+        const mesActual = fechaActual.getMonth() + 1; // Los meses van de 0-11
+        const añoActual = fechaActual.getFullYear();
+        const muestraid = mesActual + añoActual.toString();
         
         // Validaciones
         if (isNaN(canasta) || isNaN(municipio) || isNaN(establecimiento) || isNaN(causal)) {
@@ -647,6 +654,7 @@ async function InsertarRegistroCausal() {
                 Nveces: (muestra?.nVeces || 0) + 1,
                 Enviado: 0,
                 FechaEnvio: null,
+                muestraid: muestraid,
                 CoordenadaX: !isNaN(coordenadaX) ? coordenadaX : null,
                 CoordenadaY: !isNaN(coordenadaY) ? coordenadaY : null
             });
@@ -734,6 +742,11 @@ async function insertarDetalle() {
         } else {
             TasaCambio = await obtenerCambioDelDia();
         }
+
+        const fechaActual = new Date();
+        const mesActual = fechaActual.getMonth() + 1; // Los meses van de 0-11
+        const añoActual = fechaActual.getFullYear();
+        const muestraid = mesActual + añoActual.toString();
         
         // Validaciones
         if (isNaN(canasta) || isNaN(municipio) || isNaN(establecimiento) || isNaN(causal) || isNaN(variedad) || isNaN(estado)) {
@@ -773,6 +786,7 @@ async function insertarDetalle() {
             Nveces: 0,
             Enviado: 0,
             FechaEnvio: null,
+            muestraid: muestraid,
             CoordenadaX: !isNaN(coordenadaX) ? coordenadaX : null,
             CoordenadaY: !isNaN(coordenadaY) ? coordenadaY : null
         };
@@ -1542,9 +1556,12 @@ async function jsonSeriesPrecios() {
 
         // 2. Mapear registros a formato del API
         const detalle = registrosNoEnviados.map(item => ({
+            ObjIdCatCanasta: item.objIdCatCanasta,
+            ObjCodMuni: item.objCodMuni,
             ObjIdEstablecimientoCanasta: item.objIdEstablecimientoCanasta,
             ObjIdCatVariedad: item.objIdCatVariedad,
             FechaDefinidaRecoleccion: item.fechaDefinidaRecoleccion,
+            muestraid: item.muestraid,
             PrecioCalculado: item.PrecioCalculado,
             PrecioRealRecolectado: item.PrecioRealRecolectado,
             Cantidad: item.Cantidad,
@@ -1569,14 +1586,15 @@ async function jsonSeriesPrecios() {
                     IdCatEstablecimiento: id,
                     ObjCodMuni: item.objCodMuni,
                     Razon_soc: null,
-                    Nombre: item.Nombre || null,
+                    Nombre: null,
                     Encargado: item.Encargado || null,
                     Cargo: item.Cargo || null,
                     Telefono: item.Telefono || null,
                     Direccion: item.Direccion || null,
                     DiaHabil: null,
                     CoordenadaX: item.CoordenadaX || null,
-                    CoordenadaY: item.CoordenadaY || null
+                    CoordenadaY: item.CoordenadaY || null,
+                    establecimientosCanasta: null
                 });
             }
         });
@@ -1721,10 +1739,12 @@ async function marcarComoEnviados2(registros) {
 }
 
 //obtiene el listado de Establecimientos con variedades pendientes de enviar
-async function obtenerValidaMuestra(empleado) {
+async function obtenerValidaMuestra(empleado, canasta, municipio) {
     try {
+        // Mostrar el spinner
+        spinner.style.display = 'block';
         // Obtener datos desde la API https://appcepov.inide.gob.ni https://localhost:7062
-        const response = await fetch(`https://appcepov.inide.gob.ni/endpoint/cipp/Validamuestra/${empleado}`,  {
+        const response = await fetch(`https://appcepov.inide.gob.ni/endpoint/cipp/Validamuestra/${empleado}/${canasta}/${municipio}`,  {
             method: 'GET',
             headers: {
                 'Accept': 'application/json'
@@ -1766,7 +1786,7 @@ async function obtenerValidaMuestra(empleado) {
                 const li = document.createElement("li");
                 li.className = "list-group-item d-flex justify-content-between align-items-center";
                 li.innerHTML = `
-                    <span><strong>${item.nombreCanasta} - ${item.nombreEstablecimiento} - ${item.nombreVariedad} </strong></span>
+                    <span><strong>${item.nombreEstablecimiento} - ${item.nombreVariedad} </strong></span>
                     <button class="btn btn-sm btn-primary" onclick="irMuestra(${item.objIdCatCanasta}, '${item.objCodMuni}', '${item.objIdEstablecimientoCanasta}')">
                         Ver
                     </button>                    
@@ -1808,6 +1828,9 @@ async function obtenerValidaMuestra(empleado) {
             message: error.message,
             data: []
         };
+    } finally {
+        // Ocultar el spinner
+        spinner.style.display = 'none';
     }
 }
 

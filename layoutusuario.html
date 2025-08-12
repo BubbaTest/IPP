@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>IPC</title>
+    <title>IPP</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -259,6 +259,8 @@
 
         async function ValidarMuestra() {
             const Empleado = document.querySelector('#empleado').value.toUpperCase();
+            const canasta = document.querySelector('#canastaSelect').value;
+            const municipio = document.querySelector('#municipioSelect').value;
             
              // Validar al menos un empleado seleccionado
             if (!Empleado) {
@@ -266,8 +268,18 @@
                 return;
             }
 
+            if (!canasta) {
+                mostrarMensaje('Por favor seleccione Canasta.', "error"); 
+                return;
+            }
+
+            if (!municipio) {
+                mostrarMensaje('Por favor seleccione Municipio.', "error"); 
+                return;
+            }
+
             try {
-                const result = await obtenerValidaMuestra(Empleado);
+                const result = await obtenerValidaMuestra(Empleado, canasta, municipio);
                 if (result.success) {
                     mostrarMensaje(`Validación de muestra exitosa. ${result.message}`, "success");
                 } else {

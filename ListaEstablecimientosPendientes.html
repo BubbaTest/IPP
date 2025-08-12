@@ -9,16 +9,40 @@
   <fieldset class="border p-3 mb-3">
     <legend >Establecimientos con Variedades</legend>
     <div class="row  justify-content-center">
+      <div id="spinner" class="spinner-border text-primary justify-content-center" role="status" style="display: none;">
+        <span class="visually-hidden">Cargando...</span>
+      </div>
+    </div>
+    <div class="row  justify-content-center">
       <p id="analista">Debe tener conexión para realizar esta acción.</p>
-      <div class="col-md-3">
+      <div class="col-md-2">
         <div class="form-group">
             <input type="text" id="empleado" class="form-control" placeholder="Empleado">
         </div>
       </div>
+      <div class="col-md-2  mt-1">
+      <div class="form-group">
+        <label class="has-float-label" title="Canasta">
+          <select id="canastaSelect" class="form-select sel" aria-label="Seleccionar canasta" required data-placeholder="Seleccionar opción">
+            <option value="" disabled selected>Seleccionar canasta</option>
+          </select>
+          <span>Canasta:</span>
+        </label>
+      </div>
+    </div>
+    <div class="col-md-2  mt-1">
+      <div class="form-group">
+        <label class="has-float-label" data-toggle="tooltip" data-placement="top" title="Municipio">
+          <select id="municipioSelect" class="form-select sel" aria-label="Default select example" required>
+          </select>
+          <span>Municipio:</span>
+        </label>
+      </div>
+    </div>
     </div>
   </fieldset>
 
-  <div class="row  justify-content-center mt-1">   
+  <div class="row  justify-content-center mt-1">
     <div class="col-md-6 d-flex justify-content-center">
       <button type="button" class="btn btn-success" id="btnValidar" data-tabcontinuar="data-tabcontinuar" onclick="ValidarMuestra()">
         <span>Validar</span>
