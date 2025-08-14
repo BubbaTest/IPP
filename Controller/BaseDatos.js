@@ -8,7 +8,7 @@ db.version(1).stores({
 	Variedades: '[objIdCatCanasta+objIdEstablecimientoCanasta+objIdCatVariedad],[objIdCatCanasta+objIdEstablecimientoCanasta]',
     Establecimientos: '[idCatCanasta+objCodMuni+idEstablecimientoCanasta], [idCatCanasta+objCodMuni],idEstablecimientoCanasta',
 	Calendario: 'fecha,[idCalendario+fecha]',
-	Municipios: 'iD_Muni',	
+	Municipios: '[iD_Muni+objIdCatCanasta], iD_Muni, objIdCatCanasta',	
 	Canasta: 'idCatCanasta',    
 	Causales: 'idCatValorCatalogo',
 	Estados: 'idCatValorCatalogo',
@@ -134,6 +134,7 @@ async function obtenerAlmacenarCatalogos(empleado) {
             await db.Municipios.bulkPut(catalog.muncipios.map(inf => ({
                 iD_Muni: Number.parseInt(inf.iD_Muni),
                 noM_MUNI: inf.noM_MUNI.trim(),
+                objIdCatCanasta : Number.parseInt(inf.objIdCatCanasta)
             })));
 
             await db.Canasta.bulkPut(catalog.canasta.map(inf => ({
@@ -366,6 +367,27 @@ function mostrarMensaje(mensaje, tipo = 'success') {
         messageDiv.textContent = '';
     }, 2000);
 }
+
+//mostrarMensajeAlertify
+function mostrarMensajeAlertify(mensaje, tipo = 'success') {
+    // Configuración de la posición y el tiempo de duración
+    alertify.set('notifier', 'delay', 3);
+    alertify.set('notifier', 'position', 'top-right');
+
+    // Mostrar el mensaje según el tipo
+    if (tipo === 'success') {
+        alertify.success(mensaje);
+    } else if (tipo === 'error') {
+        alertify.error(`Error: ${mensaje}`);
+    } else if (tipo === 'warning') {
+        alertify.warning(mensaje);
+    } else if (tipo === 'info') {
+        alertify.message(mensaje);
+    } else {
+        console.warn('Tipo de mensaje no reconocido:', tipo);
+    }
+}
+
 
 // Función para hashear una cadena usando SHA-1 (sin cambios)
 async function hashPassword(password) {
