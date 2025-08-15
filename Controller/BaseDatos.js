@@ -48,10 +48,9 @@ async function validarLogin(usuarioId, password) {
             return false;
         }
         const isValid = user.password === password;
-        //console.log('Coincidencia de Contraseña:', isValid);
         return isValid;
     } catch (error) {
-        //console.error('Error Validando Sesión:', error);
+        console.error('Error Validando Sesión:', error);
         return false;
     }
 }
@@ -262,7 +261,6 @@ async function obtenerAlmacenarMuestra(empleado) {
         };
 
     } catch (error) {
-        console.error('Error al obtener o almacenar muestras:', error);
         return {            
             success: false,
             message: error.message
@@ -316,7 +314,6 @@ async function obtenerAlmacenarPrevio(empleado) {
         };
 
     } catch (error) {
-        console.error('Error al obtener o almacenar muestras:', error);
         return {            
             success: false,
             message: error.message

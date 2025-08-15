@@ -1,0 +1,58 @@
+{
+  "name": "PWA IPP",
+  "short_name": "IPP",
+  "start_url": "/acceso.html",
+  "display": "standalone",
+  "display_override": [
+    "window-controls-overlay"
+  ],
+  "background_color": "#ffffff",
+  "theme_color": "#09F",
+  "orientation": "portrait",
+  "description": "Aplicación que permite el levantamiento in situ del índice de precio al productor.",
+  "lang": "es",
+  "dir": "ltr",
+  "scope": "/",
+  "version": "1.0.0",
+  "author": "Bubba",
+  "license": "MIT",
+  "keywords": [
+    "IPC",
+    "Indice de Precios al Productor",
+    "Gobierno",
+    "Nicaragua",
+    "Economía"
+  ],
+  "icons": [
+    {
+      "src": "/img/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/img/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/main.png",
+      "sizes": "521x523",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/screenshots/config.png",
+      "sizes": "629x268",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/screenshots/capture.png",
+      "sizes": "655x458",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

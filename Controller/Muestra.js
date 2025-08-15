@@ -29,7 +29,7 @@ async function cargarSelect(storeName, selectElement, keyField, displayField, so
         }
         $(selectElement).trigger('change'); // Para Select2
     } catch (error) {
-        //console.error(`Error al cargar ${storeName}:`, error);
+         mostrarMensajeAlertify(`Error al cargar ${storeName} - ${error.message}`, 'error');
         selectElement.innerHTML = '<option value="">Error al cargar datos</option>';
         $(selectElement).trigger('change');
     }
@@ -110,11 +110,8 @@ async function CargarSelectFiltros(canasta, municipio, establecimiento, selectEl
             }
         }
 
-        // === 5. Ordenar alfabéticamente ===
-        // const compare = (a, b) => a[displayField].localeCompare(b[displayField]);
-        // conRegistro.sort(compare);
-        // sinRegistro.sort(compare);
         // === 5. Ordenar alfabéticamente por el campo de visualización ===
+        // const compare = (a, b) => a[displayField].localeCompare(b[displayField]);
         const compare = (a, b) => {
             const valA = a[displayField] != null ? String(a[displayField]) : '';
             const valB = b[displayField] != null ? String(b[displayField]) : '';
@@ -166,9 +163,8 @@ async function CargarSelectFiltros(canasta, municipio, establecimiento, selectEl
 
         // === 7. Notificar a Select2 u otros listeners ===
         $(selectElement).trigger('change');
-        //$(selectElement).select2({allowClear: true});
     } catch (error) {
-        //console.error("Error al cargar el select de variedades:", error);
+        mostrarMensajeAlertify(`Error al cargar el select de variedades: ${error.message}`, 'error');
         selectElement.innerHTML = '<option value="" disabled selected>Error al cargar datos</option>';
         $(selectElement).trigger('change');
     }
@@ -201,7 +197,7 @@ async function cargarSelectVariedades(selectElement, objIdCatCanasta, objIdEstab
         }
         $(selectElement).trigger('change'); // Para Select2
     } catch (error) {
-        //console.error(`Error al cargar Variedades:`, error);
+        mostrarMensajeAlertify(`Error al cargar variedades: ${error.message}`, 'error');
         selectElement.innerHTML = '<option value="">Error al cargar datos</option>';
         $(selectElement).trigger('change');
     }
@@ -247,7 +243,6 @@ function setupMuestraEventListeners() {
 
     //selecciona causal y carga establecimiento
   $('#causalSelect').on('select2:select',  function (e) { 
-    //if ($(this).val() == 58 )  { //causal efectivo
     const canasta = document.getElementById('canastaSelect');
     const municipio = document.getElementById('municipioSelect');
 
@@ -267,10 +262,6 @@ function setupMuestraEventListeners() {
           // Opcional: Lanza el error de nuevo si quieres que el error se propague aún más.
           // throw error;        
       });
-    //} 
-    // else {
-    //     $("#filtrarBtn").prop("disabled", false);
-    // } 
   });
 
   //selecciona establecimiento y carga datos
@@ -285,7 +276,6 @@ function setupMuestraEventListeners() {
                 getLocation();
                 $("#filtrarBtn").prop("disabled", false);
                 return mostrarDiferencias(canastaId, municipioId, establecimientoId); // Retorna la promesa
-                //return cargarSelectVariedades(variedadesSelect, canastaId, establecimientoId);       
             })
             .catch(error => {
                 console.error("Ocurrió un error en la cadena de promesas:", error);
@@ -336,7 +326,7 @@ function setupMuestraEventListeners() {
        
     })
     .catch(error => {
-        console.error("Ocurrió un error en la cadena de promesas:", error);
+        mostrarMensajeAlertify(`ocurrio un error en la cadena de promesas : ${error.message}`, 'error');
         // Opcional: Lanza el error de nuevo si quieres que el error se propague aún más.
         // throw error;        
     });
@@ -385,7 +375,7 @@ function setupMuestraEventListeners() {
         insertarDetalle()
         .then(resultado => {
             if (!resultado.success) {
-                mostrarMensaje(`Error: ${resultado.message}`, 'error');
+                mostrarMensaje(`Error guardarBtn: ${resultado.message}`, 'error');
             } 
             else {
                 const canastaVal = document.getElementById('canastaSelect').value;
@@ -395,13 +385,12 @@ function setupMuestraEventListeners() {
                 // Limpiar formulario después de guardar
                 limpiarVariedadDetalle('nuevo');
                 marcarEstablecimientosconDatos(canastaVal,municipioVal);
-                //CargarSelectFiltros(canasta.value, municipio.value, establecimiento.value, variedad.value, variedad, "objIdCatVariedad", "nombreVariedad");
                 CargarSelectFiltros(canastaVal,municipioVal,establecimientoVal,selectElement,'objIdCatVariedad','nombreVariedad');
                 marcarVariedadesRegistradas(canastaVal, municipioVal, establecimientoVal, 'variedadSelect');
             }
         })
         .catch(error => {
-            console.error('Error:', error.message);
+            mostrarMensajeAlertify(`Error en guardarBtn : ${error.message}`, 'error');
         });
     });
 }
@@ -416,12 +405,10 @@ async function filterAndPopulateEstablecimientos(canasta, municipio) {
     const municipioValue = Number.parseInt(municipio.value);
 
     if (!canastaValue) {
-        //mostrarMensaje('Por favor seleccione una Canasta.', "error");
         mostrarMensajeAlertify('Por favor seleccione una Canasta.', 'error');
         return;
     }
     if (!municipioValue) {
-        //mostrarMensaje('Por favor seleccione un Municipio.', "error");
         mostrarMensajeAlertify('Por favor seleccione un Municipio.', 'error');
         return;
     }
@@ -500,12 +487,11 @@ async function cargarDatosEstablecimiento(idEstablecimientoCanasta) {
             });
 
         } else {
-            //console.log('Establecimiento no encontrado');
             limpiarCamposEstablecimiento(true); // Limpiar y deshabilitar
             document.getElementById('resultadoestablecimiento').innerHTML = '<p>Establecimiento no encontrado</p>';
         }
     } catch (error) {
-        //console.error('Error al cargar los datos:', error);
+        mostrarMensajeAlertify(`Error al cargar los datos : ${error.message}`, 'error');
         limpiarCampos(true); // Limpiar y deshabilitar
         document.getElementById('resultadoestablecimiento').innerHTML = '<p>Error al cargar los datos del establecimiento.</p>';
     }
@@ -550,19 +536,16 @@ async function confirmarCausal() {
     $('#btnConfirmar').off('click').on('click', async function() {
         try {
              $("#filtrarBtn").prop("disabled", true);
-            //const semana = document.getElementById('semanasSelect'); 
-            //const dia = document.getElementById('diasSelect'); 
             InsertarRegistroCausal()
             // .then(() => { // Usa una función flecha para asegurar que `this` se mantenga correcto.                
             //     return marcarInformantesConDatosHoy(semana.value, dia.value); // Retorna la promesa de marcarInformantesConDatosHoy()
             // })
             .catch(error => {
-                console.error("Ocurrió un error en la cadena de promesas:", error);
+                mostrarMensajeAlertify(`Error en la cadena de promesas: ${error.message}`, 'error');
                 // Opcional: Lanza el error de nuevo si quieres que el error se propague aún más.
                 // throw error;        
             });
         } catch (error) {
-            //mostrarMensaje(`Error inesperado: ${error.message}`, "error");
             mostrarMensajeAlertify(`Error inesperado: ${error.message}`, 'error');
         } finally {
             // Ocultar el modal de confirmación
@@ -663,7 +646,7 @@ async function InsertarRegistroCausal() {
                 objIdEstablecimientoCanasta: variedad.objIdEstablecimientoCanasta,
                 objIdCatVariedad: variedad.objIdCatVariedad,
 
-                fechaDefinidaRecoleccion: fechadefinidarecoleccionInput, //muestra?.fechaDefinidaRecoleccion || null,
+                fechaDefinidaRecoleccion: fechadefinidarecoleccionInput, 
                 PrecioCalculado: 0,
                 PrecioRealRecolectado: 0,
                 Cantidad: 1,
@@ -676,7 +659,6 @@ async function InsertarRegistroCausal() {
                 Encargado: encargado,
                 Cargo: cargo,
                 Direccion: direccion,
-                //DatoEstablecimiento: false,
                 TasaCambio : 0,
 
                 FechaCreacion: formatLocalDateTime(hoy),
@@ -697,29 +679,16 @@ async function InsertarRegistroCausal() {
 
         // ✅ Éxito
         const count = nuevosRegistros.length;
-        //console.log(`Se insertaron ${count} registros en Detalle`);
         limpiarCamposEstablecimiento();
         mostrarMensajeAlertify('Registros guardados exitosamente', 'success');
-        // mostrarMensaje('Registros guardados exitosamente', 'success');
-        // alertify.set('notifier', 'delay', 2);
-        // alertify.set('notifier', 'position', 'bottom-center');
-        // alertify.success('Registros guardados exitosamente');
 
         return {
             success: true,
             message: `Se insertaron ${count} registros.`,
-            //count
         };
 
     } catch (error) {
-        //console.error('Error en InsertarRegistroCausal:', error);
-        //mostrarMensaje(`Error: ${error.message}`, 'danger');
-        mostrarMensajeAlertify(`Error: ${error.message}`, 'error');
-
-        // alertify.set('notifier', 'delay', 2);
-        // alertify.set('notifier', 'position', 'bottom-center');
-        // alertify.error(`Error: ${error.message}`);
-
+        mostrarMensajeAlertify(`Error in InsertarResgistroCausal: ${error.message}`, 'error');
         return {
             success: false,
             message: error.message
@@ -741,7 +710,6 @@ async function insertarDetalle() {
         const estadoSelect = document.getElementById('estadoSelect');
         const monedaSelect = document.getElementById('monedaSelect');
         const undmedSelect = document.getElementById('undmedSelect');
-        //const datoestablecimientochk = document.getElementById('establecimientosi');
 
         // Validar elementos del DOM
         if (!canastaSelect || !municipioSelect || !establecimientoSelect || !variedadSelect || !usuarioInput || !causalSelect) {
@@ -767,13 +735,11 @@ async function insertarDetalle() {
         const precioCalculado = validarNumero(document.getElementById('preciocalculadoInput')?.value, 'Precio Calculado', true, estado);
         const moneda = Number.parseInt(monedaSelect.value, 10);
         const undmed = Number.parseInt(undmedSelect.value, 10);
+
         // Paso 1: Calcular TasaCambio
         let TasaCambio;
-        if (moneda == 42) {
-            TasaCambio = 0;
-        } else {
-            TasaCambio = await obtenerCambioDelDia();
-        }
+        if (moneda == 42) { TasaCambio = 0; } else {
+            TasaCambio = await obtenerCambioDelDia(); }
 
         const fechaActual = new Date();
         const mesActual = fechaActual.getMonth() + 1; // Los meses van de 0-11
@@ -810,7 +776,6 @@ async function insertarDetalle() {
             Encargado: encargado,
             Cargo: cargo,
             Direccion: direccion,
-            //DatoEstablecimiento: datoestablecimientochk.checked,
             TasaCambio: TasaCambio,
 
             FechaCreacion: formatLocalDateTime(hoy),
@@ -829,27 +794,16 @@ async function insertarDetalle() {
         });
 
         // ✅ Éxito 
-        //mostrarMensaje('Registros guardados exitosamente', 'success');
         mostrarMensajeAlertify('Registros guardados exitosamente', 'success');
-        // alertify.set('notifier', 'delay', 2);
-        // alertify.set('notifier', 'position', 'bottom-center');
-        // alertify.success('Registros guardados exitosamente');
 
         return {
             success: true,
             message: `Se insertaron correctamente el registro.`,
-            //count
         };
 
 
     } catch (error) {
-        //console.error('Error en InsertarRegistroCausal:', error);
-        //mostrarMensaje(`Error: ${error.message}`, 'danger');
-        mostrarMensajeAlertify(`Error: ${error.message}`, 'error');
-
-        // alertify.set('notifier', 'delay', 2);
-        // alertify.set('notifier', 'position', 'bottom-center');
-        // alertify.error(`Error: ${error.message}`);
+        mostrarMensajeAlertify(`Error en insertarDtalle: ${error.message}`, 'error');
 
         return {
             success: false,
@@ -971,40 +925,23 @@ async function cargarDatosVariedad(objIdEstablecimientoCanasta, objIdCatVariedad
                 </table>
             `;
 
-            // Insertar la tabla en el div <td>${variedad.nVeces || '0'}</td>
+            // Insertar la tabla en el div 
             document.getElementById('resultadovariedad').innerHTML = tabla;
             $("#undmedSelect").val(variedad.ObjIdUnidRecolectada).trigger('change'); // Actualizar select de unidad de medida
             hiddenPrecioAnterior = variedad.precioRealRecolectado; 
             hiddennVeces = variedad.nVeces;         
         } else {
-            //console.log('Variedad no encontrada');
             document.getElementById('resultadovariedad').innerHTML = '<p>Variedad no encontrado</p>';
             hiddenPrecioAnterior = 0; 
             hiddennVeces = 0;     
         }
     } catch (error) {
-        //console.error('Error al cargar los datos del variedad:', error);
+        mostrarMensajeAlertify(`Error al cargar los datos de la variedad: ${error.message}`, 'error');
         document.getElementById('resultadovariedad').innerHTML = '<p>Error al cargar los datos de la variedad.</p>';
     }
 }
 
 // Función para verificar el aumento del 15%
-function checkIncrementoPrecio2() {
-    const precioInput = document.getElementById('precioInput');    
-    const nuevoPrecio = parseFloat(precioInput.value);
-    const precioAnterior = parseFloat(hiddenPrecioAnterior);
-    
-    if (isNaN(nuevoPrecio) || isNaN(precioAnterior)) return;
-    
-    const aumentoPermitido = precioAnterior * 1.15;
-    
-    if (nuevoPrecio > aumentoPermitido) {
-        alertify.set('notifier', 'delay', 4);
-        alertify.set('notifier', 'position', 'bottom-center');
-        alertify.error(`¡Aumento significativo de precio!\n\nPrecio anterior: ${precioAnterior.toFixed(2)}\nNuevo precio: ${nuevoPrecio.toFixed(2)}\n\nEl aumento supera el 15% permitido.`);
-    }
-}
-
 function checkIncrementoPrecio() {
     const precioInput = document.getElementById('precioInput');    
     const nuevoPrecio = parseFloat(precioInput.value);
@@ -1016,21 +953,14 @@ function checkIncrementoPrecio() {
     const decrementoPermitido = precioAnterior * 0.85;
     
     if (nuevoPrecio > aumentoPermitido) {
-        //alertify.set('notifier', 'delay', 3);
-        //alertify.set('notifier', 'position', 'bottom-center');
-        //alertify.error(`¡Aumento significativo de precio!\n\nPrecio anterior: ${precioAnterior.toFixed(2)}\nNuevo precio: ${nuevoPrecio.toFixed(2)}\n\nEl aumento supera el 15% permitido.`);
         mostrarMensajeAlertify(`¡Aumento significativo de precio!\n\nPrecio anterior: ${precioAnterior.toFixed(2)}\nNuevo precio: ${nuevoPrecio.toFixed(2)}\n\nEl aumento supera el 15% permitido.`, 'error');
     } else if (nuevoPrecio < decrementoPermitido) {
-        //alertify.set('notifier', 'delay', 3);
-        //alertify.set('notifier', 'position', 'bottom-center');
-        //alertify.error(`¡Decremento significativo de precio!\n\nPrecio anterior: ${precioAnterior.toFixed(2)}\nNuevo precio: ${nuevoPrecio.toFixed(2)}\n\nLa reducción supera el 15% permitido.`);
         mostrarMensajeAlertify(`¡Decremento significativo de precio!\n\nPrecio anterior: ${precioAnterior.toFixed(2)}\nNuevo precio: ${nuevoPrecio.toFixed(2)}\n\nLa reducción supera el 15% permitido.`, 'error');
     }
 }
 
 //funcion para obtener tipocambio del dia
 async function obtenerCambioDelDia() {
-    //return 36.70;
     try {
         // Obtener la fecha actual en formato DD-MM-YYYY
         const fechaHoy = formatDateToDDMMYYYY(new Date());
@@ -1040,11 +970,10 @@ async function obtenerCambioDelDia() {
         if (registro) {
             return registro.cambio;
         } else {
-            //console.log('No se encontró el cambio para la fecha:', fechaHoy);
             return null; // O puedes lanzar un error o devolver un valor por defecto
         }
     } catch (error) {
-        //console.error('Error al obtener el cambio del día', error);
+        mostrarMensajeAlertify(`Error al obtener cambioCambioDelDia: ${error.message}`, 'error');
         throw error;
     }
 }
@@ -1083,8 +1012,7 @@ async function marcarEstablecimientosconDatos(canasta, municipio) {
         const municipioId = Number.parseInt(municipio, 10);
 
         if (isNaN(canastaId) || isNaN(municipioId)) {
-            //mostrarMensaje(`Error canasta o municipio no válidos: ${canasta, municipio}`, "error"); 
-            mostrarMensajeAlertify(`Error canasta o municipio no válidos: ${canasta, municipio}`, 'error');
+            mostrarMensajeAlertify(`Error canasta o municipio no válidos: ${canasta} - ${municipio}`, 'error');
             return;
         }
 
@@ -1116,7 +1044,6 @@ async function marcarEstablecimientosconDatos(canasta, municipio) {
         // Asegurar que el select sea un jQuery object y exista
         const $select = $('#establecimientoSelect'); // Puedes pasar como parámetro si es dinámico
         if ($select.length === 0) {
-            //mostrarMensaje('No se encontró el elemento #establecimientoSelect', "error");
             mostrarMensajeAlertify('No se encontró el elemento #establecimientoSelect', 'error');
             return;
         }
@@ -1125,7 +1052,7 @@ async function marcarEstablecimientosconDatos(canasta, municipio) {
         inicializarSelect2ConMarcacion($select, establecimientosUnicos);
 
     } catch (error) {
-        console.error('Error en marcarEstablecimientosconDatos:', error);
+        mostrarMensajeAlertify(`Error marcarEstablecimientosconDatos ${error.message}`, 'error');
     }
 }
 
@@ -1137,7 +1064,6 @@ async function marcarEstablecimientosconDatos(canasta, municipio) {
 function inicializarSelect2ConMarcacion(selectElement, itemHoySet) {
     // Validar que sea un jQuery object
     if (!selectElement.jquery || selectElement.length === 0) {
-        //console.error('inicializarSelect2ConMarcacion: elemento no válido');
         mostrarMensajeAlertify('inicializarSelect2ConMarcacion: elemento no válido', 'error');
         return;
     }
@@ -1194,7 +1120,6 @@ async function marcarVariedadesRegistradas(causal, municipio, establecimiento, s
         const objIdEstablecimientoCanasta = Number.parseInt(establecimiento, 10);
 
         if (isNaN(objIdCatCanasta) || isNaN(objCodMuni) || isNaN(objIdEstablecimientoCanasta)) {
-            //console.warn('marcarVariedadesRegistradas: Parámetros numéricos no válidos');
             mostrarMensajeAlertify('marcarVariedadesRegistradas: Parámetros numéricos no válidos', 'warning');
             return;
         }
@@ -1221,7 +1146,6 @@ async function marcarVariedadesRegistradas(causal, municipio, establecimiento, s
         // 4. Obtener el elemento select y aplicar marcas
         const $select = $(`#${selectElementId}`);
         if ($select.length === 0) {
-            //console.warn(`No se encontró el elemento #${selectElementId}`);
             mostrarMensajeAlertify(`No se encontró el elemento #${selectElementId}`, 'warning');
             return;
         }
@@ -1230,61 +1154,7 @@ async function marcarVariedadesRegistradas(causal, municipio, establecimiento, s
         inicializarSelect2ConMarcacion($select, variedadesUnicas);
 
     } catch (error) {
-        //console.error('Error en marcarVariedadesRegistradas:', error);
-        mostrarMensajeAlertify(`Error en marcarVariedadesRegistradas: ${error}`, 'error');
-    }
-}
-
-async function marcarVariedadesConDatos(informanteId, semana, dia) {
-    try {
-        const informanteId = $('#informantesSelect').val(); // Usamos jQuery para select2
-        let semana = $('#semanasSelect').val();
-        let dia = $('#diasSelect').val();
-        semana = Number.parseInt(semana);
-        dia =dia;
-        const db = await openDB(); // Asegúrate que esta función exista y devuelva la BD abierta
-        const variedadesSelect = $('#variedadesSelect'); // jQuery selector para el select2
-
-        const variedadesHoy = new Set();
-
-        const transaction = db.transaction(['SeriesPrecios'], 'readonly');
-        const almacenSeries = transaction.objectStore('SeriesPrecios');
-
-        // Usar el índice BuscarxInfSemDia => [InformanteId, Semana, Dia]
-        const index = almacenSeries.index('BuscarxInfSemDia');
-
-        // Crear rango para buscar registros con:
-        // InformanteId = informanteId, Semana = semana, Dia = dia
-        const keyRange = IDBKeyRange.only([informanteId.trim(), Number.parseInt(semana), dia.toString()]);
-
-        const cursorRequest = index.openCursor(keyRange);
-
-        cursorRequest.onsuccess = function(event) {
-            const cursor = event.target.result;
-            if (cursor) {
-                const registro = cursor.value;
-                const variedadId = registro.VariedadId;
-
-                if (variedadId !== undefined && variedadId !== null) {
-                    variedadesHoy.add(variedadId.toString().trim());
-                }
-
-                cursor.continue(); // Continuar al siguiente
-            } else {
-                // Cursor terminado, inicializar Select2 con marcación
-                inicializarSelect2ConMarcacion(variedadesSelect, variedadesHoy);
-            }
-        };
-
-        cursorRequest.onerror = function(event) {
-            //console.error("Error al leer los datos de SeriesPrecios:", event.target.error);
-            mostrarMensajeAlertify(`Error al leer los datos de SeriesPrecios: ${event.target.error}`, 'error');
-        };
-
-    } catch (error) {
-        //console.error("Error al marcar variedades con datos:", error);
-        //mostrarMensaje("Hubo un problema al cargar los datos previos.", "danger");
-        mostrarMensajeAlertify(`Hubo un problema al cargar los datos previos  ${error}`, 'error');
+        mostrarMensajeAlertify(`Error en marcarVariedadesRegistradas: ${error.message}`, 'error');
     }
 }
 
@@ -1330,12 +1200,10 @@ async function mostrarDiferencias(canasta, municipio, establecimiento) {
             muestraMap.set(reg.objIdCatVariedad, {
                 objIdCatVariedad: reg.objIdCatVariedad,
                 nombreVariedad: reg.nombreVariedad || `Variedad ${reg.objIdCatVariedad}`,
-                // Agrega otros campos si existen
             });
         }
 
         if (muestraMap.size === 0) {
-            //mostrarMensaje("No se encontraron variedades en Muestra para este establecimiento.", "info");
             mostrarMensajeAlertify('No se encontraron variedades en Muestra para este establecimiento.', 'warning');
             return;
         }
@@ -1358,13 +1226,10 @@ async function mostrarDiferencias(canasta, municipio, establecimiento) {
             );
             mostrarListadoFaltantes(faltantes, faltantesMap);
         } else {
-            //mostrarMensaje("Todas las variedades ya han sido registradas.", "success");
             mostrarMensajeAlertify('Todas las variedades ya han sido registradas.', 'success');
         }
 
     } catch (error) {
-        //console.error('Error al mostrar diferencias:', error);
-        //mostrarMensaje(`Error al comparar registros: ${error.message}`, "danger");
         mostrarMensajeAlertify(`Error al comparar resgistros: ${error.message}`, 'error');
     }
 }
@@ -1450,7 +1315,6 @@ async function cargarRegistroCausal(canasta, municipio, establecimiento) {
             isNaN(objCodMuni) ||
             isNaN(objIdEstablecimientoCanasta) 
         ) {
-            //mostrarMensaje("Todos los parámetros deben ser números enteros válidos.", "error");
             mostrarMensajeAlertify('Todos los parámetros deben ser números enteros válidos', 'error');
             return false;
         }
@@ -1469,7 +1333,6 @@ async function cargarRegistroCausal(canasta, municipio, establecimiento) {
 
         // === Paso 3: Validar si existe el registro ===
         if (!registro) {
-            //mostrarMensaje("No se encontró un registro con la combinación especificada.", "info");   
             mostrarMensajeAlertify('No se encontró un registro con la combinación especificada', 'warning');         
             return true; // ✅ Éxito
         }
@@ -1478,7 +1341,6 @@ async function cargarRegistroCausal(canasta, municipio, establecimiento) {
         const estadosSinLevantamiento = [10, 11, 12, 50];
         if (estadosSinLevantamiento.includes(registro.ObjIdEstadoVar)) {
             $("#causalSelect").val(registro.ObjIdEstadoVar).trigger("change");
-            //mostrarMensaje("No se realizó levantamiento efectivo", "warning"); // o "info"
             mostrarMensajeAlertify('No se realizó levantamiento Efectivo es un Causal', 'warning');
             //limpiarFormulario(); // Opcional: asegura que no queden datos antiguos
             return false;
@@ -1486,7 +1348,6 @@ async function cargarRegistroCausal(canasta, municipio, establecimiento) {
 
         return true; // ✅ Éxito
     } catch (error) {
-        //mostrarMensaje(`Error al acceder a la base de datos: ${error.message}`, "error");
         mostrarMensajeAlertify(`Error al acceder a la base de datos: ${error.message}`, 'error');
         return false;
     }
@@ -1513,7 +1374,6 @@ async function cargarDetalleRegistro(canasta, municipio, establecimiento, varied
             isNaN(objIdEstablecimientoCanasta) ||
             isNaN(objIdCatVariedad)
         ) {
-            //mostrarMensaje("Todos los parámetros deben ser números enteros válidos.", "danger");
             mostrarMensajeAlertify('Todos los parámetros deben ser números enteros válidos', 'warning');
             return false;
         }
@@ -1534,12 +1394,8 @@ async function cargarDetalleRegistro(canasta, municipio, establecimiento, varied
         // === Paso 3: Validar si existe el registro ===
         if (!registro) {
             //limpiarFormulario();
-            //mostrarMensaje("No se encontró un registro con la combinación especificada.", "info");
             mostrarMensajeAlertify('No se encontró registro con la combinación especificada', 'warning')
             if (hiddennVeces == 3) {
-                // alertify.set('notifier', 'delay', 4);
-                // alertify.set('notifier', 'position', 'bottom-center');
-                // alertify.success('Tiene 3 meses que no recolecta datos.');
                 mostrarMensajeAlertify('Tiene 3 meses que no se recolecta datos.', 'error');
             }    
             return false;
@@ -1555,11 +1411,8 @@ async function cargarDetalleRegistro(canasta, municipio, establecimiento, varied
         $("#observaciones2Input").val(registro.Observacion || '');
 
         // ✅ Éxito
-        // console.log("Datos cargados correctamente:", registro);
         return true;
     } catch (error) {
-        //console.error("Error al cargar el registro de Detalle:", error);
-        //mostrarMensaje(`Error al acceder a la base de datos: ${error.message}`, "danger");
         mostrarMensajeAlertify(`Error al acceder a la base de datos: ${error.message}`, 'error');
         return false;
     }
@@ -1575,7 +1428,6 @@ async function enviarDatos() {
         const response = await jsonSeriesPrecios();
         const registrosNoEnviados = response.detalle; // Extraemos los registros no enviados
         if (registrosNoEnviados.length === 0) {
-            //mostrarMensaje("No hay registros pendientes por enviar", "success");
             mostrarMensajeAlertify('No hay registros pendientes por enviar', 'success');
             return;
         }
@@ -1596,8 +1448,7 @@ async function enviarDatos() {
            });
            
            if (!responsess.ok) {
-                //mostrarMensaje(`Error al enviar los datos: ${error}`, "error");
-                mostrarMensajeAlertify(`Error al enviar los datos: ${error}`, 'error');   
+                mostrarMensajeAlertify(`Error al enviar los datos: ${error.message}`, 'error');   
                throw new Error(`Error: ${responsess.statusText}`);
            }
            const serverResponse = await responsess.json();
@@ -1605,11 +1456,10 @@ async function enviarDatos() {
             await marcarComoEnviados(registrosNoEnviados);
             mostrarMensaje(`Datos enviados y actualizados localmente. Respuesta del servidor: ${JSON.stringify(serverResponse)}`, "success");
            } catch (error) { 
-            mostrarMensaje(`Datos enviados, pero no se pudo actualizar el estado local: ${error}`, "error");
+            mostrarMensaje(`Datos enviados, pero no se pudo actualizar el estado local: ${error.message}`, "error");
            }
     } catch (error) {
-         mostrarMensaje(`Error al enviar los datos: ${error}`, "error");   
-        //console.error(error);
+         mostrarMensaje(`Error al enviar los datos: ${error.message}`, "error");  
     } finally {
         // Ocultar el spinner
         spinner.style.display = 'none';
@@ -1629,8 +1479,7 @@ async function jsonSeriesPrecios() {
             .where('Enviado').equals(0)
             .toArray();
 
-        // const todos = await db.Detalle.toArray();
-        // const registrosNoEnviados = todos.filter(item => item.Enviado === false);
+        // const todos = await db.Detalle.toArray(); const registrosNoEnviados = todos.filter(item => item.Enviado === false);
 
         if (registrosNoEnviados.length === 0) {
             return {
@@ -1679,6 +1528,7 @@ async function jsonSeriesPrecios() {
                     DiaHabil: null,
                     CoordenadaX: item.CoordenadaX || null,
                     CoordenadaY: item.CoordenadaY || null,
+                    Activo: true,
                     establecimientosCanasta: null
                 });
             }
@@ -1693,7 +1543,6 @@ async function jsonSeriesPrecios() {
         };
 
     } catch (error) {
-        //console.error("Error al obtener los datos de la base local:", error);
         throw new Error(`No se pudieron recuperar los registros pendientes: ${error.message}`);
     }
 }
@@ -1707,7 +1556,6 @@ async function jsonSeriesPrecios() {
  */
 async function marcarComoEnviados(registros) {
     if (!Array.isArray(registros) || registros.length === 0) {
-        //console.warn("marcarComoEnviados: No se proporcionaron registros para actualizar.");
         mostrarMensajeAlertify('marcarComoEnviados: No se proporcionaron registos para actualizar', 'warning');
         return;
     }
@@ -1752,74 +1600,7 @@ async function marcarComoEnviados(registros) {
                 }
             }
         });
-
-        //console.log(`Se marcaron ${registros.length} registros como enviados.`);
     } catch (error) {
-        //console.error("Error al marcar registros como enviados:", error);
-        throw new Error(`No se pudieron actualizar los registros localmente: ${error.message}`);
-    }
-}
-
-
-async function marcarComoEnviados2(registros) {
-    if (!Array.isArray(registros) || registros.length === 0) {
-        console.warn("marcarComoEnviados: No se proporcionaron registros para actualizar.");
-        return; // No es un error, solo no hay nada que hacer
-    }
-
-    try {
-        // Usamos una transacción de escritura en 'Detalle'
-        await db.transaction('rw', db.Detalle, async () => {
-            for (const reg of registros) {
-                // Clave compuesta para buscar en Detalle
-                const key = [
-                    //reg.objIdCatCanasta,
-                    //reg.objCodMuni,
-                    reg.ObjIdEstablecimientoCanasta,
-                    reg.ObjIdCatVariedad
-                ];
-                console.log(key)
-
-                // Buscar el registro actual
-                const registroExistente = await db.Detalle.get(key);
-
-                // Si existe y no está marcado como enviado, actualizamos
-                if (registroExistente && registroExistente.Enviado === 0) {
-                    // Actualizamos solo el campo Enviado (y opcionalmente FechaEnvio si lo tienes)
-                    await db.Detalle.update(key, {
-                        Enviado: 1,
-                        FechaEnvio: new Date().toISOString() // si tienes este campo
-                    });
-                }
-            }
-        });
-
-        // await db.transaction('rw', db.Detalle, async () => {
-        //     const actualizaciones = [];
-
-        //     for (const reg of registros) {
-        //         const key = [
-        //             reg.objIdCatCanasta,
-        //             reg.objCodMuni,
-        //             reg.objIdEstablecimientoCanasta,
-        //             reg.objIdCatVariedad
-        //         ];
-        //         const item = await db.Detalle.get(key);
-        //         if (item && item.Enviado === false) {
-        //             item.Enviado = true;
-        //             item.FechaEnvio = new Date().toISOString();
-        //             actualizaciones.push(item);
-        //         }
-        //     }
-
-        //     if (actualizaciones.length > 0) {
-        //         await db.Detalle.bulkPut(actualizaciones); // Actualiza múltiples
-        //     }
-        // });
-
-        console.log(`Se marcaron ${registros.length} registros como enviados.`);
-    } catch (error) {
-        console.error("Error al marcar registros como enviados:", error);
         throw new Error(`No se pudieron actualizar los registros localmente: ${error.message}`);
     }
 }
@@ -1842,7 +1623,6 @@ async function obtenerValidaMuestra(empleado, canasta, municipio) {
             const errorResponse = await response.json();
             const errorMessage = errorResponse.mensaje || `Error en la solicitud HTTP: ${response.status}`;
             throw new Error(errorMessage);
-            //throw new Error(`Error en la solicitud HTTP: ${response.status}`);
         }
 
         const catalog = await response.json();
@@ -1876,7 +1656,7 @@ async function obtenerValidaMuestra(empleado, canasta, municipio) {
                     <button class="btn btn-sm btn-primary" onclick="irMuestra(${item.objIdCatCanasta}, '${item.objCodMuni}', '${item.objIdEstablecimientoCanasta}')">
                         Ver
                     </button>                    
-                `; //<span class="badge bg-danger rounded-pill">${item.Cantidad} variedades</span>
+                `; 
                 listGroup.appendChild(li);
             });
 
@@ -1895,7 +1675,6 @@ async function obtenerValidaMuestra(empleado, canasta, municipio) {
         };
 
     } catch (error) {
-        console.error("Error al validar muestras:", error);
         const modalBody = document.getElementById("modalFaltantesBody");
         const modalTitle = document.getElementById("modalFaltantesLabel");
 
@@ -1952,7 +1731,7 @@ function irMuestra(canasta, municipio, establecimiento) {
                 mostrarDiferencias(canasta, municipio, establecimiento);
             });
         } else {
-            console.warn("Alguno de los selects no existe aún.");
+             mostrarMensajeAlertify('Alguno de los selects no existe aun', 'warning');
         }
     });
 }
