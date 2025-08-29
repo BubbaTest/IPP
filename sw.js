@@ -22,7 +22,6 @@ const ASSETS_TO_CACHE_STATIC = [
     '/layoutusuario.html',
     '/ExportarMuestra.html',
     '/GrabaMuestra.html',
-    '/ListaEstablecimientosPendientes.html',
     '/MantCat.html',
     '/offline.html',
     '/img/icon-192.png',

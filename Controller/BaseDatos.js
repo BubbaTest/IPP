@@ -57,7 +57,7 @@ async function validarLogin(usuarioId, password) {
 
 async function obtenerAlmacenarUsuarios(empleado) {
     try {
-         // Mostrar el spinner
+         // Mostrar el spinner https://localhost:7062 https://appcepov.inide.gob.ni
         spinner.style.display = 'block';
         const response = await fetch(`https://appcepov.inide.gob.ni/endpoint/cipp/Connecter/${empleado}`, {
             method: 'POST',

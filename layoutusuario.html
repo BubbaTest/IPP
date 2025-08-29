@@ -191,7 +191,14 @@
                         });                        
                     }
                     else if (view === 'ListaEstablecimientosPendientes.html') {
-                        initListarCombos();                       
+                        initListarCombos();
+                        
+                         $('#canastaSelect').on('select2:select',  function (e) { 
+                            const municipioSelect = document.getElementById('municipioSelect');
+                            if (municipioSelect) {
+                                cargarSelect('Municipios', municipioSelect, 'iD_Muni', 'noM_MUNI', 'iD_Muni', 'objIdCatCanasta', Number.parseInt($(this).val()));
+                            }
+                        });
                         
                         // 🔍 Inicializar Select2 después de cargar los datos
                         $('.sel').select2({

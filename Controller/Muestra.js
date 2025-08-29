@@ -239,6 +239,19 @@ function setupMuestraEventListeners() {
         if (municipioSelect) {
             cargarSelect('Municipios', municipioSelect, 'iD_Muni', 'noM_MUNI', 'iD_Muni', 'objIdCatCanasta', Number.parseInt($(this).val()));
         }
+        $('#causalSelect').select2("val", "ca");
+        $('#establecimientoSelect').select2("val", "ca");
+        $('#establecimientoSelect').prop("disabled", true); 
+        limpiarCamposEstablecimiento();
+        limpiarVariedadDetalle();
+        document.getElementById('variedadDetalle').style.display = 'none'; 
+    });
+
+    $('#municipioSelect').on('select2:select',  function (e) { 
+        
+        $('#causalSelect').select2("val", "ca");
+        $('#establecimientoSelect').select2("val", "ca");
+        $('#establecimientoSelect').prop("disabled", true); 
     });
 
     //selecciona causal y carga establecimiento
@@ -253,8 +266,10 @@ function setupMuestraEventListeners() {
     }
 
       filterAndPopulateEstablecimientos(canasta, municipio)
-      .then(() => { // Usa una función flecha para asegurar que `this` se mantenga correcto.
+      .then(() => { // Usa una función flecha para asegurar que `this` se mantenga correcto.        
          $("#establecimientoSelect").prop("disabled", false);
+         limpiarVariedadDetalle();   
+         document.getElementById('variedadDetalle').style.display = 'none';     
         return marcarEstablecimientosconDatos(canasta.value, municipio.value); // Retorna la promesa 
       })
       .catch(error => {
@@ -286,24 +301,24 @@ function setupMuestraEventListeners() {
   });
 
   // Manejador de evento para el botón de filtrar
-    document.getElementById('filtrarBtn').addEventListener('click', () => {
-        const estadoId = $("#causalSelect").val();
-        const canastaId = $("#canastaSelect").val()
-        const municipioId = $("#municipioSelect").val()
-        const establecimientoId = $("#establecimientoSelect").val();
-        const variedadesSelect = document.getElementById('variedadSelect');
-        const monedaSelect = document.getElementById('monedaSelect');
-        if (estadoId==58) {  
-            document.getElementById('variedadDetalle').style.display = 'block';
-            CargarSelectFiltros(canastaId, municipioId, establecimientoId, variedadesSelect, "objIdCatVariedad", "nombreVariedad")
-            cargarSelect('Estados', estadoSelect, 'idCatValorCatalogo', 'nombre', 'nombre'); 
-            cargarSelect('Monedas', monedaSelect, 'idCatValorCatalogo', 'nombre', 'nombre'); 
-            marcarVariedadesRegistradas(canastaId, municipioId, establecimientoId, 'variedadSelect')
-        }
-        else {
-            confirmarCausal();            
-        }
-    });    
+  document.getElementById('filtrarBtn').addEventListener('click', () => {
+      const estadoId = $("#causalSelect").val();
+      const canastaId = $("#canastaSelect").val()
+      const municipioId = $("#municipioSelect").val()
+      const establecimientoId = $("#establecimientoSelect").val();
+      const variedadesSelect = document.getElementById('variedadSelect');
+      const monedaSelect = document.getElementById('monedaSelect');
+      if (estadoId==58) {  
+          document.getElementById('variedadDetalle').style.display = 'block';
+          CargarSelectFiltros(canastaId, municipioId, establecimientoId, variedadesSelect, "objIdCatVariedad", "nombreVariedad")
+          cargarSelect('Estados', estadoSelect, 'idCatValorCatalogo', 'nombre', 'nombre'); 
+          cargarSelect('Monedas', monedaSelect, 'idCatValorCatalogo', 'nombre', 'nombre'); 
+          marcarVariedadesRegistradas(canastaId, municipioId, establecimientoId, 'variedadSelect')
+      }
+      else {
+          confirmarCausal();            
+      }
+  });    
 
     //selecciona variedad y carga datos
   $('#variedadSelect').on('select2:select',  async function (e) { 
@@ -354,45 +369,52 @@ function setupMuestraEventListeners() {
   $('#estadoSelect').on('select2:select',  async function (e) { 
     if ($(this).val() != 16) { // no recolectado
         $("#precioInput").prop("disabled", true); 
-        if ($("#undmedSelect").val() == null) {
+        //if ($("#undmedSelect").val() == null) {
             $("#undmedSelect").prop("disabled", false);
-        } 
-        else {
-            $("#undmedSelect").prop("disabled", true);
-        }              
+        // } 
+        // else {
+        //     $("#undmedSelect").prop("disabled", true);
+        // }   
+        $("#cantidadInput").val(0);           
         $("#monedaSelect").val(42).trigger('change'); // Seleccionar C$ por defecto 
         $("#monedaSelect").prop("disabled", true);
     }
     else {
+        $("#cantidadInput").val(1); 
         $("#precioInput").prop("disabled", false);
         $("#undmedSelect").prop("disabled", false);
         $("#monedaSelect").prop("disabled", false);
         $("#monedaSelect").val("CA").trigger('change');         
     }
+    
   });
 
   document.getElementById('guardarBtn').addEventListener('click', () => {        
-        insertarDetalle()
-        .then(resultado => {
-            if (!resultado.success) {
-                mostrarMensaje(`Error guardarBtn: ${resultado.message}`, 'error');
-            } 
-            else {
-                const canastaVal = document.getElementById('canastaSelect').value;
-                const municipioVal = document.getElementById('municipioSelect').value;
-                const establecimientoVal = document.getElementById('establecimientoSelect').value;
-                const selectElement = document.getElementById('variedadSelect');
-                // Limpiar formulario después de guardar
-                limpiarVariedadDetalle('nuevo');
-                marcarEstablecimientosconDatos(canastaVal,municipioVal);
-                CargarSelectFiltros(canastaVal,municipioVal,establecimientoVal,selectElement,'objIdCatVariedad','nombreVariedad');
-                marcarVariedadesRegistradas(canastaVal, municipioVal, establecimientoVal, 'variedadSelect');
-            }
-        })
-        .catch(error => {
-            mostrarMensajeAlertify(`Error en guardarBtn : ${error.message}`, 'error');
-        });
-    });
+      insertarDetalle()
+      .then(resultado => {
+          if (!resultado.success) {
+              mostrarMensaje(`Error guardarBtn: ${resultado.message}`, 'error');
+          } 
+          else {
+              const canastaVal = document.getElementById('canastaSelect').value;
+              const municipioVal = document.getElementById('municipioSelect').value;
+              const establecimientoVal = document.getElementById('establecimientoSelect').value;
+              const selectElement = document.getElementById('variedadSelect');
+              // Limpiar formulario después de guardar
+              limpiarVariedadDetalle('nuevo');
+              marcarEstablecimientosconDatos(canastaVal,municipioVal);
+              CargarSelectFiltros(canastaVal,municipioVal,establecimientoVal,selectElement,'objIdCatVariedad','nombreVariedad');
+              marcarVariedadesRegistradas(canastaVal, municipioVal, establecimientoVal, 'variedadSelect');
+          }
+      })
+      .catch(error => {
+          mostrarMensajeAlertify(`Error en guardarBtn : ${error.message}`, 'error');
+      });
+  });
+
+  document.getElementById('limpiarBtn').addEventListener('click', () => {
+      limpiarVariedadDetalle("nuevo"); 
+  });
 }
 
 //filtrar y pobar establecimiento
@@ -513,13 +535,6 @@ function limpiarCamposEstablecimiento(deshabilitar = false) {
         const input = document.getElementById(id);
         if (input) {
             input.value = '';
-            // if (deshabilitar) {
-            //     input.disabled = true;
-            //     input.classList.add('disabled-input');
-            // } else {
-            //     input.disabled = false;
-            //     input.classList.remove('disabled-input');
-            // }
         }
     });
     $('#causalSelect').select2("val", "ca");
@@ -640,36 +655,79 @@ async function InsertarRegistroCausal() {
             const key = `${variedad.objIdEstablecimientoCanasta}_${variedad.objIdCatVariedad}`;
             const muestra = mapMuestra.get(key);
             
-            nuevosRegistros.push({
-                objIdCatCanasta: canasta,
-                objCodMuni: municipio,
-                objIdEstablecimientoCanasta: variedad.objIdEstablecimientoCanasta,
-                objIdCatVariedad: variedad.objIdCatVariedad,
+            if (muestra === undefined) {
+                // Acción cuando muestra es undefined
+                // Función para verificar si un valor es nulo o vacío
+                const isEmpty = (value) => value === null || value === "";
+                nuevosRegistros.push({
+                    objIdCatCanasta: canasta,
+                    objCodMuni: municipio,
+                    objIdEstablecimientoCanasta: variedad.objIdEstablecimientoCanasta,
+                    objIdCatVariedad: variedad.objIdCatVariedad,
 
-                fechaDefinidaRecoleccion: fechadefinidarecoleccionInput, 
-                PrecioCalculado: 0,
-                PrecioRealRecolectado: 0,
-                Cantidad: 1,
-                FechaRecoleccion: fecha,
-                ObjIdTipoMoneda: 42, // default C$
-                ObjIdEstadoVar: causal,
-                ObjIdUnidRecolectada: muestra?.ObjIdUnidRecolectada || null,
-                Observacion: observacion,
-                Telefono: telefono,
-                Encargado: encargado,
-                Cargo: cargo,
-                Direccion: direccion,
-                TasaCambio : 0,
+                    fechaDefinidaRecoleccion: !isEmpty(fechadefinidarecoleccionInput) ? fechadefinidarecoleccionInput : fecha , 
+                    PrecioCalculado: 0,
+                    PrecioRealRecolectado: 0,
+                    Cantidad: 1,
+                    FechaRecoleccion: fecha,
+                    ObjIdTipoMoneda: 42, // default C$
+                    ObjIdEstadoVar: causal, 
+                    //ObjIdUnidRecolectada: !isEmpty(undmed) ? undmed : 70,               
+                    ObjIdUnidRecolectada: 0, 
+                    Observacion: observacion,
+                    Telefono: telefono,
+                    Encargado: encargado,
+                    Cargo: cargo,
+                    Direccion: direccion,
+                    TasaCambio : 0,
 
-                FechaCreacion: formatLocalDateTime(hoy),
-                UsuarioCreacion: usuario,
-                Nveces: (muestra?.nVeces || 0) + 1,
-                Enviado: 0,
-                FechaEnvio: null,
-                muestraid: muestraid,
-                CoordenadaX: !isNaN(coordenadaX) ? coordenadaX : null,
-                CoordenadaY: !isNaN(coordenadaY) ? coordenadaY : null
-            });
+                    FechaCreacion: formatLocalDateTime(hoy),
+                    UsuarioCreacion: usuario,
+                    Nveces: 1,
+                    Enviado: 0,
+                    FechaEnvio: null,
+                    muestraid: muestraid,
+                    CoordenadaX: !isNaN(coordenadaX) ? coordenadaX : null,
+                    CoordenadaY: !isNaN(coordenadaY) ? coordenadaY : null
+                });
+            } else {
+                // Acción cuando muestra tiene un valor válido (arreglo u objeto)
+                // Función para verificar si un valor es nulo o vacío
+                const isEmpty = (value) => value === null || value === "";
+                nuevosRegistros.push({
+                    objIdCatCanasta: canasta,
+                    objCodMuni: municipio,
+                    objIdEstablecimientoCanasta: variedad.objIdEstablecimientoCanasta,
+                    objIdCatVariedad: variedad.objIdCatVariedad,
+
+                    fechaDefinidaRecoleccion: !isEmpty(fechadefinidarecoleccionInput) ? fechadefinidarecoleccionInput : fecha , 
+                    PrecioCalculado: 0,
+                    PrecioRealRecolectado: 0,
+                    Cantidad: 1,
+                    FechaRecoleccion: fecha,
+                    ObjIdTipoMoneda: 42, // default C$
+                    ObjIdEstadoVar: causal, 
+                    //ObjIdUnidRecolectada: !isEmpty(undmed) ? undmed : 70,               
+                    ObjIdUnidRecolectada: !isEmpty(muestra.ObjIdUnidRecolectada) ? muestra.ObjIdUnidRecolectada : 70, //ObjIdUnidRecolectada: muestra?.ObjIdUnidRecolectada || null,
+                    Observacion: observacion,
+                    Telefono: telefono,
+                    Encargado: encargado,
+                    Cargo: cargo,
+                    Direccion: direccion,
+                    TasaCambio : 0,
+
+                    FechaCreacion: formatLocalDateTime(hoy),
+                    UsuarioCreacion: usuario,
+                    Nveces: (muestra?.nVeces || 0) + 1,
+                    Enviado: 0,
+                    FechaEnvio: null,
+                    muestraid: muestraid,
+                    CoordenadaX: !isNaN(coordenadaX) ? coordenadaX : null,
+                    CoordenadaY: !isNaN(coordenadaY) ? coordenadaY : null
+                });
+            }
+            
+            
         }
 
         // Paso 4: Insertar en Detalle con transacción Dexie nativa
@@ -747,8 +805,8 @@ async function insertarDetalle() {
         const muestraid = mesActual + añoActual.toString();
         
         // Validaciones
-        if (isNaN(canasta) || isNaN(municipio) || isNaN(establecimiento) || isNaN(causal) || isNaN(variedad) || isNaN(estado)) {
-            throw new Error("Canasta, Municipio, Establecimiento, Causal, Variedad o Estado no son válidos.");
+        if (isNaN(canasta) || isNaN(municipio) || isNaN(establecimiento) || isNaN(causal) || isNaN(variedad) || isNaN(estado) || isNaN(undmed)) {
+            throw new Error("Canasta, Municipio, Establecimiento, Causal, Variedad, Estado o Unidad de Medida no son válidos.");
         }
         if (!usuario) throw new Error("Usuario no válido.");
 
@@ -757,20 +815,22 @@ async function insertarDetalle() {
         const coordenadaX = parseFloat(document.getElementById('lblLongitud')?.value || 0);
         const coordenadaY = parseFloat(document.getElementById('lblLatitud')?.value || 0);
 
+        // Función para verificar si un valor es nulo o vacío
+        const isEmpty = (value) => value === null || value === "";
         const nuevosRegistro = {
             objIdCatCanasta: canasta,
             objCodMuni: municipio,
             objIdEstablecimientoCanasta: establecimiento,
             objIdCatVariedad: variedad,
 
-            fechaDefinidaRecoleccion: fechadefinidarecoleccionInput,
+            fechaDefinidaRecoleccion: !isEmpty(undmed) ? fechadefinidarecoleccionInput :fecha ,
             PrecioCalculado: precioCalculado,
             PrecioRealRecolectado: precio,
             Cantidad: 1,
             FechaRecoleccion: fecha,
-            ObjIdTipoMoneda: moneda, 
-            ObjIdEstadoVar: estado,
-            ObjIdUnidRecolectada: undmed || null,
+            ObjIdTipoMoneda: !isEmpty(moneda) ? moneda : 42, 
+            ObjIdEstadoVar: estado,            
+            ObjIdUnidRecolectada: !isEmpty(undmed) ? undmed : 70, //ObjIdUnidRecolectada: undmed || null,
             Observacion: observacion,
             Telefono: telefono,
             Encargado: encargado,
@@ -926,15 +986,17 @@ async function cargarDatosVariedad(objIdEstablecimientoCanasta, objIdCatVariedad
             `;
 
             // Insertar la tabla en el div 
-            document.getElementById('resultadovariedad').innerHTML = tabla;
+            document.getElementById('resultadovariedad').innerHTML = tabla;           
             $("#undmedSelect").val(variedad.ObjIdUnidRecolectada).trigger('change'); // Actualizar select de unidad de medida
             hiddenPrecioAnterior = variedad.precioRealRecolectado; 
-            hiddennVeces = variedad.nVeces;         
+            hiddennVeces = variedad.nVeces;      
+              
         } else {
             document.getElementById('resultadovariedad').innerHTML = '<p>Variedad no encontrado</p>';
             hiddenPrecioAnterior = 0; 
             hiddennVeces = 0;     
         }
+         document.getElementById('resultadovariedad').style.display = 'block'; 
     } catch (error) {
         mostrarMensajeAlertify(`Error al cargar los datos de la variedad: ${error.message}`, 'error');
         document.getElementById('resultadovariedad').innerHTML = '<p>Error al cargar los datos de la variedad.</p>';
@@ -981,7 +1043,6 @@ async function obtenerCambioDelDia() {
 //limpiar formulario
 function limpiarVariedadDetalle(obj) { 
     hiddenPrecioAnterior = '';
-    fechadefinidarecoleccionInput = '';
     hiddennVeces = '';
 
     document.getElementById('resultadovariedad').style.display = 'none';
@@ -1393,7 +1454,6 @@ async function cargarDetalleRegistro(canasta, municipio, establecimiento, varied
 
         // === Paso 3: Validar si existe el registro ===
         if (!registro) {
-            //limpiarFormulario();
             mostrarMensajeAlertify('No se encontró registro con la combinación especificada', 'warning')
             if (hiddennVeces == 3) {
                 mostrarMensajeAlertify('Tiene 3 meses que no se recolecta datos.', 'error');
@@ -1474,12 +1534,10 @@ async function enviarDatos() {
  */
 async function jsonSeriesPrecios() {
     try {
-        // 1. Obtener registros no enviados desde Detalle
+        // 1. Obtener registros no enviados desde Detalle // const todos = await db.Detalle.toArray(); const registrosNoEnviados = todos.filter(item => item.Enviado === false);
         const registrosNoEnviados = await db.Detalle
             .where('Enviado').equals(0)
             .toArray();
-
-        // const todos = await db.Detalle.toArray(); const registrosNoEnviados = todos.filter(item => item.Enviado === false);
 
         if (registrosNoEnviados.length === 0) {
             return {
@@ -1488,22 +1546,25 @@ async function jsonSeriesPrecios() {
             };
         }
 
+        // Función para verificar si un valor es nulo o vacío
+        const isEmpty = (value) => value === null || value === "";
+
         // 2. Mapear registros a formato del API
         const detalle = registrosNoEnviados.map(item => ({
             ObjIdCatCanasta: item.objIdCatCanasta,
             ObjCodMuni: item.objCodMuni,
             ObjIdEstablecimientoCanasta: item.objIdEstablecimientoCanasta,
             ObjIdCatVariedad: item.objIdCatVariedad,
-            FechaDefinidaRecoleccion: item.fechaDefinidaRecoleccion,
+            FechaDefinidaRecoleccion: !isEmpty(item.fechaDefinidaRecoleccion) ? item.fechaDefinidaRecoleccion : item.FechaRecoleccion,
             muestraid: item.muestraid,
             PrecioCalculado: item.PrecioCalculado,
             PrecioRealRecolectado: item.PrecioRealRecolectado,
             Cantidad: item.Cantidad,
             FechaRecoleccion: item.FechaRecoleccion, // ✅ Corregido: no existe FechaDeRecoleccion
             TasaCambio: item.TasaCambio,
-            ObjIdTipoMoneda: item.ObjIdTipoMoneda,
+            ObjIdTipoMoneda: !isEmpty(item.ObjIdTipoMoneda) ? item.ObjIdTipoMoneda : 42,
             ObjIdEstadoVar: item.ObjIdEstadoVar,
-            ObjIdUnidRecolectada: item.ObjIdUnidRecolectada,
+            ObjIdUnidRecolectada: !isEmpty(item.ObjIdUnidRecolectada) ? item.ObjIdUnidRecolectada : 70,
             FechaImputado: null,
             Observacion: item.Observacion,
             UsuarioCreacion: item.UsuarioCreacion
@@ -1544,6 +1605,82 @@ async function jsonSeriesPrecios() {
 
     } catch (error) {
         throw new Error(`No se pudieron recuperar los registros pendientes: ${error.message}`);
+    }
+}
+
+async function jsonSeriesPrecios2() {
+    try {
+        // Leer el archivo JSON desde la raíz del proyecto
+        const response = await fetch('detalle.json');
+
+        // Verificar si la respuesta es exitosa
+        if (!response.ok) {
+            throw new Error(`Error al cargar el archivo: ${response.statusText}`);
+        }
+
+        // Convertir la respuesta a JSON
+        const data = await response.json();
+       
+
+        // Filtrar los registros según el valor de obj  
+        const registrosNoEnviados = data;      
+       
+        // 2. Mapear registros a formato del API
+        const detalle = registrosNoEnviados.map(item => ({
+            ObjIdCatCanasta: item.objIdCatCanasta,
+            ObjCodMuni: item.objCodMuni,
+            ObjIdEstablecimientoCanasta: item.objIdEstablecimientoCanasta,
+            ObjIdCatVariedad: item.objIdCatVariedad,
+            FechaDefinidaRecoleccion: item.fechaDefinidaRecoleccion !== null ? item.fechaDefinidaRecoleccion : item.FechaRecoleccion, //FechaDefinidaRecoleccion: item.fechaDefinidaRecoleccion,            
+            muestraid: item.muestraid,
+            PrecioCalculado: item.PrecioCalculado,
+            PrecioRealRecolectado: item.PrecioRealRecolectado,
+            Cantidad: item.Cantidad,
+            FechaRecoleccion: item.FechaRecoleccion, // ✅ Corregido: no existe FechaDeRecoleccion
+            TasaCambio: item.TasaCambio,
+            ObjIdTipoMoneda: item.ObjIdTipoMoneda !== null ? item.ObjIdTipoMoneda : 42,
+            ObjIdEstadoVar: item.ObjIdEstadoVar,
+            ObjIdUnidRecolectada: item.ObjIdUnidRecolectada,
+            FechaImputado: null,
+            Observacion: item.Observacion,
+            UsuarioCreacion: item.UsuarioCreacion
+        }));
+
+        // 3. Crear CatEstablecimiento sin duplicados
+        const establecimientosMap = new Map();
+
+        registrosNoEnviados.forEach(item => {
+            const id = item.objIdEstablecimientoCanasta; // Clave única del establecimiento
+
+            if (!establecimientosMap.has(id)) {
+                establecimientosMap.set(id, {
+                    IdCatEstablecimiento: id,
+                    ObjCodMuni: item.objCodMuni,
+                    Razon_soc: null,
+                    Nombre: null,
+                    Encargado: item.Encargado || null,
+                    Cargo: item.Cargo || null,
+                    Telefono: item.Telefono || null,
+                    Direccion: item.Direccion || null,
+                    DiaHabil: null,
+                    CoordenadaX: item.CoordenadaX || null,
+                    CoordenadaY: item.CoordenadaY || null,
+                    Activo: true,
+                    establecimientosCanasta: null
+                });
+            }
+        });
+
+        const catEstablecimiento = Array.from(establecimientosMap.values());
+
+        // 4. Retornar estructura esperada
+        return {
+            detalle,
+            catEstablecimiento
+        };
+    } catch (error) {
+        //throw error; // Re-lanzar el error para que pueda ser manejado por el llamador
+        throw new Error(`No se pudieron recuperar los registros pendientes: ${error.message}`);        
     }
 }
 
