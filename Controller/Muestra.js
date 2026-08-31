@@ -1,3 +1,5 @@
+'use strict';
+
 let fechadefinidarecoleccionInput;
 let hiddenPrecioAnterior;
 let hiddennVeces;
@@ -46,7 +48,7 @@ async function cargarSelect(storeName, selectElement, keyField, displayField, so
  * @param {string} keyField - Campo a usar como valor (ej: 'objIdCatVariedad')
  * @param {string} displayField - Campo a mostrar (ej: 'nombreVariedad')
  */
-async function CargarSelectFiltros(canasta, municipio, establecimiento, selectElement, keyField = 'objIdCatVariedad', displayField = 'nombreVariedad') {
+async function CargarSelectFiltros1(canasta, municipio, establecimiento, selectElement, keyField = 'objIdCatVariedad', displayField = 'nombreVariedad') {
     try {
         // === 0. Asegurar que selectElement sea un HTMLElement nativo ===
         if (selectElement.jquery) {
@@ -170,6 +172,148 @@ async function CargarSelectFiltros(canasta, municipio, establecimiento, selectEl
     }
 }
 
+async function CargarSelectFiltros(
+    canasta, 
+    municipio, 
+    establecimiento, 
+    selectElement, 
+    keyField = 'objIdCatVariedad', 
+    displayField = 'nombreVariedad',
+    displayAditionalField = 'codigo'
+) {
+    // 0. Normalizar y validar el elemento DOM
+    const rawElement = selectElement?.jquery ? selectElement[0] : selectElement;
+    if (!rawElement || !(rawElement instanceof HTMLElement)) {
+        throw new Error("El parámetro 'selectElement' debe ser un elemento HTML válido.");
+    }
+
+    try {
+        // 1. Validar y parsear entradas
+        const objIdCatCanasta = Number.parseInt(canasta, 10);
+        const objCodMuni = Number.parseInt(municipio, 10);
+        const objIdEstablecimientoCanasta = Number.parseInt(establecimiento, 10);
+
+        if (Number.isNaN(objIdCatCanasta) || Number.isNaN(objCodMuni) || Number.isNaN(objIdEstablecimientoCanasta)) {
+            throw new Error("Los parámetros de filtro deben ser números válidos.");
+        }
+
+        // 2. Consultas en PARALELO usando los índices definidos en tu esquema Dexie
+        const [variedades, registrosDetalle] = await Promise.all([
+            // Índice: [objIdCatCanasta+objIdEstablecimientoCanasta]
+            db.Variedades
+                .where('[objIdCatCanasta+objIdEstablecimientoCanasta]')
+                .equals([objIdCatCanasta, objIdEstablecimientoCanasta])
+                .toArray(),
+
+            // Índice: [objIdCatCanasta+objCodMuni+objIdEstablecimientoCanasta]
+            // Traemos solo los registros necesarios para contrastar
+            db.Detalle
+                .where('[objIdCatCanasta+objCodMuni+objIdEstablecimientoCanasta]')
+                .equals([objIdCatCanasta, objCodMuni, objIdEstablecimientoCanasta])
+                .toArray()
+        ]);
+
+        // Si no hay variedades registradas para esa combinación en este establecimiento
+        if (variedades.length === 0) {
+            rawElement.innerHTML = '';
+            const noDataOpt = new Option('No hay variedades para este establecimiento', '', false, false);
+            noDataOpt.disabled = true;
+            noDataOpt.selected = true;
+            rawElement.appendChild(noDataOpt);
+            $(rawElement).trigger('change');
+            return;
+        }
+
+        // 3. Set O(1) extraído de los registros en Detalle
+        const idsEnDetalle = new Set(
+            registrosDetalle.map(d => Number(d.objIdCatVariedad))
+        );
+
+        // 4. Clasificación en un solo pase
+        const conRegistro = [];
+        const sinRegistro = [];
+
+        for (let i = 0; i < variedades.length; i++) {
+            const varItem = variedades[i];
+            const id = Number(varItem[keyField]);
+            const codigo = String(varItem[displayAditionalField]);
+            const nombre = varItem[displayField] != null ? String(varItem[displayField]) : `Variedad ${id}`;
+
+            const item = { [keyField]: id, [displayField]: nombre, [displayAditionalField]: codigo };
+
+            if (idsEnDetalle.has(id)) {
+                conRegistro.push(item);
+            } else {
+                sinRegistro.push(item);
+            }
+        }
+
+        // === 3.2 ALERTA: Cantidad de registros en el Grupo "Sin Registro" ===
+        const totalSinRegistro = sinRegistro.length;
+        if (totalSinRegistro > 0) {
+            mostrarMensajeAlertify(`Existen ${totalSinRegistro} variedad(es) pendientes en 'Sin Registro'.`, 'error');
+        } else {
+            mostrarMensajeAlertify(`Todas las variedades de este establecimiento ya poseen registro.`, 'success');
+        }
+
+        // 5. Ordenamiento alfabético usando Intl.Collator (Más eficiente para grandes volúmenes)
+        const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+        const compareFn = (a, b) => collator.compare(a[displayField], b[displayField]);
+
+        conRegistro.sort(compareFn);
+        sinRegistro.sort(compareFn);
+
+        // 6. Construcción en Memoria con DocumentFragment (0 Reflows en el DOM)
+        const fragment = document.createDocumentFragment();
+
+        const defaultOption = new Option('Seleccione una opción', '', false, true);
+        defaultOption.disabled = true;
+        fragment.appendChild(defaultOption);
+
+        // Grupo: Sin Registro
+        if (sinRegistro.length > 0) {
+            const optgroupSin = document.createElement('optgroup');
+            optgroupSin.label = `Sin Registro (${sinRegistro.length})`;
+
+            sinRegistro.forEach(item => {
+                const optText = `${item[displayField]} / ${item[displayAditionalField]}`;
+                optgroupSin.appendChild(new Option(optText, item[keyField]));
+            });
+            fragment.appendChild(optgroupSin);
+        }
+
+        // Grupo: Con Registro
+        if (conRegistro.length > 0) {
+            const optgroupCon = document.createElement('optgroup');
+            optgroupCon.label = `Con Registro (${conRegistro.length})`;
+
+            conRegistro.forEach(item => {
+                const optText = `${item[displayField]} / ${item[displayAditionalField]}`;
+                optgroupCon.appendChild(new Option(optText, item[keyField]));
+            });
+            fragment.appendChild(optgroupCon);
+        }
+
+        // Renderizado final de golpe
+        rawElement.innerHTML = '';
+        rawElement.appendChild(fragment);
+
+        // 7. Disparar evento change para Select2 u otros observadores
+        $(rawElement).trigger('change');
+
+    } catch (error) {
+        console.error("Error en CargarSelectFiltros:", error);
+        mostrarMensajeAlertify(`Error al cargar el select de variedades: ${error.message}`, 'error');
+        
+        rawElement.innerHTML = '';
+        const errOpt = new Option('Error al cargar datos', '', false, true);
+        errOpt.disabled = true;
+        rawElement.appendChild(errOpt);
+        
+        $(rawElement).trigger('change');
+    }
+}
+
 // Función para cargar el select de variedades usando un índice compuesto
 async function cargarSelectVariedades(selectElement, objIdCatCanasta, objIdEstablecimientoCanasta) {
     try {
@@ -217,6 +361,54 @@ function initListarCombos() {
     }
 }
 
+function SetupRevertir() {
+    const canastaSelect = document.getElementById('canastaSelect');   
+    if (canastaSelect) {
+        cargarSelect('Canasta', canastaSelect, 'idCatCanasta', 'nombre', 'nombre');
+    }   
+
+    $('#canastaSelect').on('select2:select',  function (e) { 
+        const municipioSelect = document.getElementById('municipioSelect');
+        if (municipioSelect) {
+            cargarSelect('Municipios', municipioSelect, 'iD_Muni', 'noM_MUNI', 'iD_Muni', 'objIdCatCanasta', Number.parseInt($(this).val()));
+        }        
+    });
+
+      //selecciona causal y carga establecimiento
+    $('#municipioSelect').on('select2:select',  function (e) { 
+        const canasta = document.getElementById('canastaSelect');
+        const municipio = document.getElementById('municipioSelect');
+
+        // Validar al menos un empleado seleccionado
+        if (!canasta.value || !municipio.value) {
+            mostrarMensaje("Por favor, seleccione canasta y municipio.", "error");
+            return;
+        }
+
+        $('#establecimientoSelect').select2("val", "ca");
+        $('#establecimientoSelect').prop("disabled", false); 
+
+        filterAndPopulateEstablecimientos(canasta, municipio)       
+    });
+
+    document.getElementById('eliminarBtn').addEventListener('click', () => {
+        let canastaId = document.getElementById('canastaSelect').value;  
+        let municipioId = document.getElementById('municipioSelect').value;
+        let establecimientoId = document.getElementById('establecimientoSelect').value;
+
+        canastaId = Number.parseInt(canastaId, 10);
+        municipioId = Number.parseInt(municipioId, 10);
+        establecimientoId = Number.parseInt(establecimientoId, 10);
+
+        // Validar al menos un filtro seleccionado
+        if (!canastaId || !municipioId || !establecimientoId) {
+            mostrarMensaje('Por favor seleccione ambos criterios de filtrado: Canasta, Municipio y Establecimiento.', "error");
+            return;
+        } 
+        eliminarRegistrosDetalle(canastaId, municipioId, establecimientoId);
+    });
+}
+
 // Asignar la fecha actual al input de fecha y hora (sin cambios)
 function setCurrentDateTime() {
     const input = document.getElementById('fechaInput');
@@ -224,7 +416,8 @@ function setCurrentDateTime() {
     const now = new Date();
     // Format YYYY-MM-DDTHH:mm
     const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
+    let month = String(now.getMonth() + 1).padStart(2, '0');
+    //month = month -1;
     const day = String(now.getDate()).padStart(2, '0');
     const hours = String(now.getHours()).padStart(2, '0');
     const minutes = String(now.getMinutes()).padStart(2, '0');
@@ -255,50 +448,114 @@ function setupMuestraEventListeners() {
     });
 
     //selecciona causal y carga establecimiento
-  $('#causalSelect').on('select2:select',  function (e) { 
-    const canasta = document.getElementById('canastaSelect');
-    const municipio = document.getElementById('municipioSelect');
+    $('#causalSelect').on('select2:select',  function (e) { 
+        const canasta = document.getElementById('canastaSelect');
+        const municipio = document.getElementById('municipioSelect');
 
-    // Validar al menos un empleado seleccionado
-    if (!canasta.value || !municipio.value) {
-        mostrarMensaje("Por favor, seleccione canasta y municipio.", "error");
-        return;
-    }
+        // Validar al menos un empleado seleccionado
+        if (!canasta.value || !municipio.value) {
+            mostrarMensaje("Por favor, seleccione canasta y municipio.", "error");
+            return;
+        }
 
-      filterAndPopulateEstablecimientos(canasta, municipio)
-      .then(() => { // Usa una función flecha para asegurar que `this` se mantenga correcto.        
-         $("#establecimientoSelect").prop("disabled", false);
-         limpiarVariedadDetalle();   
-         document.getElementById('variedadDetalle').style.display = 'none';     
-        return marcarEstablecimientosconDatos(canasta.value, municipio.value); // Retorna la promesa 
-      })
-      .catch(error => {
-          console.error("Ocurrió un error en la cadena de promesas:", error);
-          // Opcional: Lanza el error de nuevo si quieres que el error se propague aún más.
-          // throw error;        
-      });
-  });
+        filterAndPopulateEstablecimientos(canasta, municipio)
+        .then(() => { // Usa una función flecha para asegurar que `this` se mantenga correcto.        
+            $("#establecimientoSelect").prop("disabled", false);
+            limpiarVariedadDetalle();   
+            document.getElementById('variedadDetalle').style.display = 'none';     
+            return marcarEstablecimientosconDatos(canasta.value, municipio.value); // Retorna la promesa 
+        })
+        .catch(error => {
+            console.error("Ocurrió un error en la cadena de promesas:", error);
+            // Opcional: Lanza el error de nuevo si quieres que el error se propague aún más.
+            // throw error;        
+        });
+    });
 
   //selecciona establecimiento y carga datos
-  $('#establecimientoSelect').on('select2:select',  async function (e) {    
-    const canastaId = $("#canastaSelect").val();   
-    const municipioId = $("#municipioSelect").val();    
-    const establecimientoId = $(this).val();
-    const noCausal = await cargarRegistroCausal(canastaId, municipioId, establecimientoId);
-    if (noCausal) {
-        cargarDatosEstablecimiento(establecimientoId)
-            .then(() => {
+//   $('#establecimientoSelect').on('select2:select',  async function (e) {    
+//     const canastaId = $("#canastaSelect").val();   
+//     const municipioId = $("#municipioSelect").val();
+//     const causal = $('#causalSelect').val();    
+//     const establecimientoId = $(this).val();
+//     const noCausal = await cargarRegistroCausal(canastaId, municipioId, establecimientoId);
+    
+//     if (noCausal) {
+//         cargarDatosEstablecimiento(establecimientoId)
+//             .then(() => {
+//                 getLocation();
+//                 if (Number(causal) === 58) {
+//                     document.getElementById('nveces-mayor-3').innerHTML = '';
+//                 } else {
+//                     cargarMuestraPreviaConVariedadesVencidad(establecimientoId);
+//                 }
+
+//                 /* if (causal !== 58) {
+//                      cargarMuestraPreviaConVariedadesVencidad(establecimientoId);
+//                  } else { document.getElementById('nveces-mayor-3').innerHTML = '';} */
+//                 $("#filtrarBtn").prop("disabled", false);
+//                 return mostrarDiferencias(canastaId, municipioId, establecimientoId); // Retorna la promesa
+//             })
+//             .catch(error => {
+//                 console.error("Ocurrió un error en la cadena de promesas:", error);
+//                 // Opcional: Lanza el error de nuevo si quieres que el error se propague aún más.
+//                 // throw error;        
+//             });
+//     }
+
+//     cargarEstadoPorEstablecimiento(establecimientoId);
+//   });
+
+    $('#establecimientoSelect').on('select2:select', async function (e) {
+        try {
+            // 1. Obtención y desestructuración centralizada de valores del DOM
+            const canastaId = $("#canastaSelect").val();
+            const municipioId = $("#municipioSelect").val();
+            const causal = $('#causalSelect').val();
+            const establecimientoId = $(this).val();
+
+            // Guard en caso de que no haya un ID válido seleccionado
+            if (!establecimientoId) return;
+
+            // 2. Consulta de causalidad
+            const noCausal = await cargarRegistroCausal(canastaId, municipioId, establecimientoId);
+
+            if (noCausal) {
+                // Cargar datos principales del establecimiento
+                await cargarDatosEstablecimiento(establecimientoId);
+
+                // Disparar la geolocalización en segundo plano
                 getLocation();
+
+                const esCausal58 = Number(causal) === 58;
+                const contenedorNVeces = document.getElementById('nveces-mayor-3');
+
+                // Tareas asíncronas secundarias en paralelo
+                const tareasSecundarias = [];
+
+                if (esCausal58) {
+                    if (contenedorNVeces) contenedorNVeces.innerHTML = '';
+                } else {
+                    tareasSecundarias.push(cargarMuestraPreviaConVariedadesVencidad(establecimientoId));
+                }
+
+                tareasSecundarias.push(mostrarDiferencias(canastaId, municipioId, establecimientoId));
+
+                // Habilitar botón de UI
                 $("#filtrarBtn").prop("disabled", false);
-                return mostrarDiferencias(canastaId, municipioId, establecimientoId); // Retorna la promesa
-            })
-            .catch(error => {
-                console.error("Ocurrió un error en la cadena de promesas:", error);
-                // Opcional: Lanza el error de nuevo si quieres que el error se propague aún más.
-                // throw error;        
-            });
-    }
-  });
+
+                // Esperar que terminen las promesas secundarias
+                await Promise.all(tareasSecundarias);
+
+            } 
+              
+            await cargarEstadoPorEstablecimiento(establecimientoId, causal);
+            
+
+        } catch (error) {
+            console.error("❌ Error en el flujo del evento Select2:", error);
+        }
+    });
 
   // Manejador de evento para el botón de filtrar
   document.getElementById('filtrarBtn').addEventListener('click', () => {
@@ -316,7 +573,14 @@ function setupMuestraEventListeners() {
           marcarVariedadesRegistradas(canastaId, municipioId, establecimientoId, 'variedadSelect')
       }
       else {
-          confirmarCausal();            
+        const Observa = document.querySelector('#observacionesInput').value;
+
+        // Validar Observacion
+        if (!Observa) {
+            mostrarMensajeAlertify('Por favor digite Observación', 'error');
+            return;
+        }
+        confirmarCausal();            
       }
   });    
 
@@ -338,7 +602,7 @@ function setupMuestraEventListeners() {
                 // Opcional: Lanza el error de nuevo si quieres que el error se propague aún más.
                 // throw error;        
             });
-       
+       cargarObsanterior(establecimientoId, variedadId);
     })
     .catch(error => {
         mostrarMensajeAlertify(`ocurrio un error en la cadena de promesas : ${error.message}`, 'error');
@@ -389,7 +653,14 @@ function setupMuestraEventListeners() {
     
   });
 
-  document.getElementById('guardarBtn').addEventListener('click', () => {        
+  document.getElementById('guardarBtn').addEventListener('click', () => {   
+    const Observa = document.querySelector('#observaciones2Input').value;
+
+    // Validar Observacion
+    if (!Observa) {
+        mostrarMensajeAlertify('Por favor digite Observación', 'error');
+        return;
+    }     
       insertarDetalle()
       .then(resultado => {
           if (!resultado.success) {
@@ -415,6 +686,38 @@ function setupMuestraEventListeners() {
   document.getElementById('limpiarBtn').addEventListener('click', () => {
       limpiarVariedadDetalle("nuevo"); 
   });
+}
+
+/**
+ * Busca en Dexie.js el nombreEstado del establecimiento y lo escribe en el textarea.
+ * Optimizado para lectura directa del B-Tree indexado sin carga masiva en memoria.
+ */
+async function cargarEstadoPorEstablecimiento(idEstablecimiento, causalVal) {
+    try {
+        const observacionesInput = document.getElementById('observacionesInput');
+        if (!observacionesInput) return;
+
+        // Evaluación de la causal (Diferente de 58)
+        if (Number(causalVal) === 58) {
+            return;
+        }
+
+        const idBuscado = Number.parseInt(idEstablecimiento, 10);
+        if (Number.isNaN(idBuscado)) return;
+
+        // Búsqueda en Dexie utilizando el índice objIdEstablecimientoCanasta
+        const registro = await db.MuestraPreviaEstadoCausal
+            .where('objIdEstablecimientoCanasta')
+            .equals(idBuscado)
+            .first();
+
+        // Asignación directa al valor del textarea
+        observacionesInput.value = registro?.nombreEstado ?? '';
+
+    } catch (error) {
+        mostrarMensajeAlertify('❌ Error al consultar MuestraPrevia en Dexie.', 'error');
+        //console.error('❌ Error al consultar MuestraPrevia en Dexie:', error);
+    }
 }
 
 //filtrar y pobar establecimiento
@@ -455,10 +758,10 @@ async function filterAndPopulateEstablecimientos(canasta, municipio) {
             }
         }
 
-        for (const { idEstablecimientoCanasta, nombreEstablecimieto } of establecimientosUnicosMap.values()) {
+        for (const { idEstablecimientoCanasta, nombreEstablecimieto, codigo } of establecimientosUnicosMap.values()) {
             const option = document.createElement('option');
             option.value = idEstablecimientoCanasta;
-            option.textContent = nombreEstablecimieto + ' / ' + idEstablecimientoCanasta;
+            option.textContent = nombreEstablecimieto + ' / ' + codigo;
             establecimientoSelect.appendChild(option);
         }
     } else {
@@ -540,6 +843,75 @@ function limpiarCamposEstablecimiento(deshabilitar = false) {
     $('#causalSelect').select2("val", "ca");
     $('#establecimientoSelect').select2("val", "ca");
     fechadefinidarecoleccionInput = '';
+    const contenedor = document.getElementById('nveces-mayor-3');
+    contenedor.innerHTML = ''; 
+}
+
+// Funcion para evaluar si las causales tienen variedades nveces > 2
+async function cargarMuestraPreviaConVariedadesVencidad(objIdEstablecimientoCanasta) {
+  try {
+    // 1. Filtrar MuestraPrevia por objIdEstablecimientoCanasta y nVeces > 2
+    const muestrasFiltradas = await db.MuestraPrevia
+      .where('objIdEstablecimientoCanasta')
+      .equals(Number.parseInt(objIdEstablecimientoCanasta))
+      .filter(muestra => muestra.nVeces > 2)
+      .toArray();
+    
+    // Si no hay resultados, vaciamos el contenedor y salimos
+    const contenedor = document.getElementById('nveces-mayor-3');
+    if (!contenedor) {
+        mostrarMensajeAlertify('Elemento con id "nveces-mayor-3" no encontrado.', 'success');
+      return;
+    }
+
+    if (muestrasFiltradas.length === 0) {
+      contenedor.innerHTML = ''; // Dejamos el contenedor vacío
+      return;
+    }
+
+    // 2. Obtener IDs únicos de variedades
+    const variedadIds = [...new Set(muestrasFiltradas.map(m => m.objIdCatVariedad))];
+
+    // 3. Obtener las variedades correspondientes
+    const variedades = await db.Variedades
+      .where('objIdCatVariedad')
+      .anyOf(variedadIds)
+      .toArray();
+
+    // Crear mapa para acceso rápido
+    const variedadMap = new Map();
+    variedades.forEach(v => {
+      variedadMap.set(v.objIdCatVariedad, v.nombreVariedad); // Asegúrate de que este campo exista
+    });
+
+    // 4. Generar filas solo si hay coincidencias nVeces
+    const filas = muestrasFiltradas
+      .map(muestra => {
+        const nombreVariedad = variedadMap.get(muestra.objIdCatVariedad) || '—';
+        return `<tr><td>${nombreVariedad}</td><td>${muestra.nVeces}</td></tr>`;
+      })
+      .join('');
+
+    // 5. Inyectar la tabla solo si hay filas
+    contenedor.innerHTML = `
+      <table style="border-collapse: collapse; width: 100%; margin-top: 10px;">
+        <thead>
+          <tr>
+            <th style="border: 1px solid #ccc; padding: 8px; text-align: left;">Variedad sin levantar</th>
+            <th style="border: 1px solid #ccc; padding: 8px; text-align: left;">Veces</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${filas}
+        </tbody>
+      </table>
+    `;
+
+  } catch (error) {
+    mostrarMensajeAlertify(`Error al cargar los datos nVeces: ${error.message}`, 'error');
+    // Opcional: si quieres limpiar en caso de error, descomenta la línea de abajo
+    document.getElementById('nveces-mayor-3').innerHTML = '';
+  }
 }
 
 //confirmar causal
@@ -654,11 +1026,19 @@ async function InsertarRegistroCausal() {
         for (const variedad of variedades) {
             const key = `${variedad.objIdEstablecimientoCanasta}_${variedad.objIdCatVariedad}`;
             const muestra = mapMuestra.get(key);
+
+             const resultado = await db.UnidadMedida
+                    .where('objIdCatVariedad')
+                    .equals(variedad.objIdCatVariedad)
+                    .first(); // Obtener el primer resultado que coincida
+
+            const objURecolId = resultado.objURecolId;
             
             if (muestra === undefined) {
-                // Acción cuando muestra es undefined
+                // Acción cuando muestra es undefined               
+
                 // Función para verificar si un valor es nulo o vacío
-                const isEmpty = (value) => value === null || value === "";
+                const isEmpty = (value) => value === null || value === undefined || value === "";
                 nuevosRegistros.push({
                     objIdCatCanasta: canasta,
                     objCodMuni: municipio,
@@ -673,7 +1053,7 @@ async function InsertarRegistroCausal() {
                     ObjIdTipoMoneda: 42, // default C$
                     ObjIdEstadoVar: causal, 
                     //ObjIdUnidRecolectada: !isEmpty(undmed) ? undmed : 70,               
-                    ObjIdUnidRecolectada: 0, 
+                    ObjIdUnidRecolectada: objURecolId, 
                     Observacion: observacion,
                     Telefono: telefono,
                     Encargado: encargado,
@@ -708,7 +1088,7 @@ async function InsertarRegistroCausal() {
                     ObjIdTipoMoneda: 42, // default C$
                     ObjIdEstadoVar: causal, 
                     //ObjIdUnidRecolectada: !isEmpty(undmed) ? undmed : 70,               
-                    ObjIdUnidRecolectada: !isEmpty(muestra.ObjIdUnidRecolectada) ? muestra.ObjIdUnidRecolectada : 70, //ObjIdUnidRecolectada: muestra?.ObjIdUnidRecolectada || null,
+                    ObjIdUnidRecolectada: !isEmpty(muestra.ObjIdUnidRecolectada) ? muestra.ObjIdUnidRecolectada : objURecolId, // 70 ObjIdUnidRecolectada: muestra?.ObjIdUnidRecolectada || null,
                     Observacion: observacion,
                     Telefono: telefono,
                     Encargado: encargado,
@@ -805,7 +1185,7 @@ async function insertarDetalle() {
         const muestraid = mesActual + añoActual.toString();
         
         // Validaciones
-        if (isNaN(canasta) || isNaN(municipio) || isNaN(establecimiento) || isNaN(causal) || isNaN(variedad) || isNaN(estado) || isNaN(undmed)) {
+        if (isNaN(canasta) || isNaN(municipio) || isNaN(establecimiento) || isNaN(causal) || isNaN(variedad) || isNaN(estado) || isNaN(undmed) || isNaN(moneda)) {
             throw new Error("Canasta, Municipio, Establecimiento, Causal, Variedad, Estado o Unidad de Medida no son válidos.");
         }
         if (!usuario) throw new Error("Usuario no válido.");
@@ -815,22 +1195,29 @@ async function insertarDetalle() {
         const coordenadaX = parseFloat(document.getElementById('lblLongitud')?.value || 0);
         const coordenadaY = parseFloat(document.getElementById('lblLatitud')?.value || 0);
 
+        const resultado = await db.UnidadMedida
+                    .where('objIdCatVariedad')
+                    .equals(variedad)
+                    .first(); // Obtener el primer resultado que coincida
+                    
+        const objURecolId = resultado.objURecolId;
+
         // Función para verificar si un valor es nulo o vacío
-        const isEmpty = (value) => value === null || value === "";
+        const isEmpty = (value) => value === null || value === undefined || value === "";
         const nuevosRegistro = {
             objIdCatCanasta: canasta,
             objCodMuni: municipio,
             objIdEstablecimientoCanasta: establecimiento,
             objIdCatVariedad: variedad,
 
-            fechaDefinidaRecoleccion: !isEmpty(undmed) ? fechadefinidarecoleccionInput :fecha ,
+            fechaDefinidaRecoleccion: !isEmpty(fechadefinidarecoleccionInput) ? fechadefinidarecoleccionInput :fecha ,
             PrecioCalculado: precioCalculado,
             PrecioRealRecolectado: precio,
             Cantidad: 1,
             FechaRecoleccion: fecha,
             ObjIdTipoMoneda: !isEmpty(moneda) ? moneda : 42, 
             ObjIdEstadoVar: estado,            
-            ObjIdUnidRecolectada: !isEmpty(undmed) ? undmed : 70, //ObjIdUnidRecolectada: undmed || null,
+            ObjIdUnidRecolectada: !isEmpty(undmed) ? undmed : objURecolId, //ObjIdUnidRecolectada: undmed || null,
             Observacion: observacion,
             Telefono: telefono,
             Encargado: encargado,
@@ -849,8 +1236,11 @@ async function insertarDetalle() {
         };
 
         // Insertar en Detalle con transacción Dexie nativa
+        // const test = 
         await db.transaction('rw', db.Detalle, async () => {
             await db.Detalle.put(nuevosRegistro);
+            //const key = await db.Detalle.put(nuevosRegistro);
+            //return key;  // Retornamos la clave para que la transacción la devuelva
         });
 
         // ✅ Éxito 
@@ -961,17 +1351,18 @@ async function cargarDatosVariedad(objIdEstablecimientoCanasta, objIdCatVariedad
                 <table class="table table-sm table-bordered tabla-variedad">
                     <thead>
                         <tr>
-                            <th colspan="4">Datos Referencia</th>                       
+                            <th colspan="5">Datos Referencia</th>                       
                         </tr>
                         <tr>
                             <th colspan="2">Precio</th>
-                            <th colspan="2"></th>                        
+                            <th colspan="3"></th>                        
                         </tr>
                         <tr>
                             <th>Anterior</th>
                             <th>Calculado</th>
                             <th>Estado</th>
-                            <th>Especificacion</th>                           
+                            <th>Especificacion</th> 
+                            <th>Observacion</th>                      
                         </tr>
                     </thead>
                     <tbody>
@@ -979,7 +1370,8 @@ async function cargarDatosVariedad(objIdEstablecimientoCanasta, objIdCatVariedad
                             <td>${variedad.precioRealRecolectado || ''}</td>
                             <td>${variedad.precioCalculado || ''}</td>
                             <td>${variedad.nombreEstado || ''}</td>
-                            <td class="especificacion-cell">${variedad.especificacion || ''}</td>                            
+                            <td class="especificacion-cell">${variedad.especificacion || ''}</td>
+                            <td class="especificacion-cell">${variedad.Observacion || ''}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -1000,6 +1392,28 @@ async function cargarDatosVariedad(objIdEstablecimientoCanasta, objIdCatVariedad
     } catch (error) {
         mostrarMensajeAlertify(`Error al cargar los datos de la variedad: ${error.message}`, 'error');
         document.getElementById('resultadovariedad').innerHTML = '<p>Error al cargar los datos de la variedad.</p>';
+    }
+}
+
+// Función para cargar observaciones anteriores en un textarea
+async function cargarObsanterior(objIdEstablecimientoCanasta, objIdCatVariedad) {
+    try {
+         // Convertir parámetros a números
+        const idEstCanasta = Number.parseInt(objIdEstablecimientoCanasta);
+        const idVariedad = Number.parseInt(objIdCatVariedad);
+        // Consulta usando Dexie.js
+        const variedadO = await db.MuestraPreviaObs
+            .where('[objIdEstablecimientoCanasta+objIdCatVariedad]') // Índice compuesto
+            .equals([idEstCanasta, idVariedad])
+            .first();
+
+        // Verificar si se encontró el establecimiento
+        if (variedadO) {
+            document.getElementById('observaciones2Input').value = variedadO.Observacion;  
+        }
+    } catch (error) {
+        mostrarMensajeAlertify(`Error al cargar los datos de la observacion: ${error.message}`, 'error');
+        document.getElementById('observaciones2Input').value = '';
     }
 }
 
@@ -1032,7 +1446,7 @@ async function obtenerCambioDelDia() {
         if (registro) {
             return registro.cambio;
         } else {
-            return null; // O puedes lanzar un error o devolver un valor por defecto
+            return 36.63; // O puedes lanzar un error o devolver un valor por defecto
         }
     } catch (error) {
         mostrarMensajeAlertify(`Error al obtener cambioCambioDelDia: ${error.message}`, 'error');
@@ -1493,12 +1907,16 @@ async function enviarDatos() {
         }
 
         const jsonData = JSON.stringify(response); // Convertir a JSON
-        //console.error(jsonData)
+        console.error(jsonData)
 
         const messageDiv = document.getElementById('message');
-        messageDiv.classList.add('d-none'); // Ocultar mensaje anterior https://appcepov.inide.gob.ni https://localhost:7062
+        messageDiv.classList.add('d-none'); // Ocultar mensaje anterior 
 
-         const responsess = await fetch('https://appcepov.inide.gob.ni/endpoint/cipp/bulksupin', {
+         // 2. Construcción dinámica de la URL
+        const endpoint = `${window.APP_CONFIG.apiBase}/bulksupin`;
+
+        const responsess = await fetch(endpoint, {
+        // const responsess = await fetch('https://appserviciosbe.inide.gob.ni/endpoint/cipp/bulksupin', {
                method: 'POST',
                headers: {
                    'Content-Type': 'application/json',
@@ -1512,6 +1930,11 @@ async function enviarDatos() {
                throw new Error(`Error: ${responsess.statusText}`);
            }
            const serverResponse = await responsess.json();
+
+        // Variable dummy para pruebas locales mientras el API está comentado
+        //const serverResponse = { status: "Simulado", mensaje: "API deshabilitada temporalmente" };
+        // ==========================================
+
            try {
             await marcarComoEnviados(registrosNoEnviados);
             mostrarMensaje(`Datos enviados y actualizados localmente. Respuesta del servidor: ${JSON.stringify(serverResponse)}`, "success");
@@ -1530,7 +1953,7 @@ async function enviarDatos() {
  * Obtiene los registros no enviados del almacén Detalle y los estructura
  * para enviar al servidor.
  * 
- * @returns {Promise<{ Detalle: Array, CatEstablecimiento: Array }>}
+ * @returns {Promise<{ Detalle: Array, CatEstablecimiento: Array, Muestra: Array }>}
  */
 async function jsonSeriesPrecios() {
     try {
@@ -1541,8 +1964,9 @@ async function jsonSeriesPrecios() {
 
         if (registrosNoEnviados.length === 0) {
             return {
-                Detalle: [],
-                CatEstablecimiento: []
+                detalle: [],
+                catEstablecimiento: [],
+                muestra: []
             };
         }
 
@@ -1562,6 +1986,7 @@ async function jsonSeriesPrecios() {
             Cantidad: item.Cantidad,
             FechaRecoleccion: item.FechaRecoleccion, // ✅ Corregido: no existe FechaDeRecoleccion
             TasaCambio: item.TasaCambio,
+            //GrabadoEnOficina: false,
             ObjIdTipoMoneda: !isEmpty(item.ObjIdTipoMoneda) ? item.ObjIdTipoMoneda : 42,
             ObjIdEstadoVar: item.ObjIdEstadoVar,
             ObjIdUnidRecolectada: !isEmpty(item.ObjIdUnidRecolectada) ? item.ObjIdUnidRecolectada : 70,
@@ -1581,6 +2006,7 @@ async function jsonSeriesPrecios() {
                     IdCatEstablecimiento: id,
                     ObjCodMuni: item.objCodMuni,
                     Razon_soc: null,
+                    Codigo: "test 31",
                     Nombre: null,
                     Encargado: item.Encargado || null,
                     Cargo: item.Cargo || null,
@@ -1597,10 +2023,19 @@ async function jsonSeriesPrecios() {
 
         const catEstablecimiento = Array.from(establecimientosMap.values());
 
-        // 4. Retornar estructura esperada
+        // 4. Crear muestra sin duplicados
+        const muestra = registrosNoEnviados.map(item => ({
+            ObjIdEstablecimientoCanasta: item.objIdEstablecimientoCanasta,
+            ObjIdCatVariedad: item.objIdCatVariedad,
+            NVeces: item.nVeces,
+            UsuarioModificacion: item.UsuarioCreacion
+        }));
+
+        // 5. Retornar estructura esperada
         return {
             detalle,
-            catEstablecimiento
+            catEstablecimiento,
+            muestra
         };
 
     } catch (error) {
@@ -1621,9 +2056,17 @@ async function jsonSeriesPrecios2() {
         // Convertir la respuesta a JSON
         const data = await response.json();
        
-
-        // Filtrar los registros según el valor de obj  
-        const registrosNoEnviados = data;      
+        // === FILTRO CLAVE: Solo registros con Enviado = 0 ===
+        const registrosNoEnviados = data.filter(item => item.Enviado === 0);
+       
+        //const registrosNoEnviados = data;      
+        if (registrosNoEnviados.length === 0) {
+            return {
+                detalle: [],
+                catEstablecimiento: [],
+                muestra: []
+            };
+        }
        
         // 2. Mapear registros a formato del API
         const detalle = registrosNoEnviados.map(item => ({
@@ -1673,15 +2116,66 @@ async function jsonSeriesPrecios2() {
 
         const catEstablecimiento = Array.from(establecimientosMap.values());
 
-        // 4. Retornar estructura esperada
+         // 4. Crear muestra sin duplicados
+        const muestra = registrosNoEnviados.map(item => ({
+            ObjIdEstablecimientoCanasta: item.objIdEstablecimientoCanasta,
+            ObjIdCatVariedad: item.objIdCatVariedad,
+            nVeces: item.nVeces,
+            usuarioModificacion: item.UsuarioCreacion
+        }));
+
+        // 5. Retornar estructura esperada
         return {
             detalle,
-            catEstablecimiento
+            catEstablecimiento,
+            muestra
         };
     } catch (error) {
         //throw error; // Re-lanzar el error para que pueda ser manejado por el llamador
         throw new Error(`No se pudieron recuperar los registros pendientes: ${error.message}`);        
     }
+}
+
+/**
+ * Marca una lista de registros como enviados de forma masiva y optimizada.
+ * Utiliza actualizaciones directas por clave primaria dentro de una transacción.
+ * * @param {Array} registros - Array de registros provenientes del servidor/payload
+ * @returns {Promise<void>}
+ */
+async function marcarComoEnviados(registros) {
+    if (!Array.isArray(registros) || registros.length === 0) {
+        mostrarMensajeAlertify('marcarComoEnviados: No se proporcionaron registros para actualizar', 'warning');
+        return;
+    }
+
+    // Nota: El payload debe contener los 4 campos de la clave primaria.
+    // Si los nombres en tu backend vienen en PascalCase (ObjId...), los normalizamos aquí.
+    const operaciones = registros.map(reg => {
+        const canasta = reg.ObjIdCatCanasta || reg.ObjIdCatCanasta;
+        const muni = reg.ObjCodMuni || reg.ObjCodMuni;
+        const est = reg.ObjIdEstablecimientoCanasta || reg.ObjIdEstablecimientoCanasta;
+        const varid = reg.ObjIdCatVariedad || reg.ObjIdCatVariedad;
+
+        // Validación defensiva básica
+        if (canasta == null || muni == null || est == null || varid == null) {
+            console.warn("Registro omitido por falta de componentes de clave primaria:", reg);
+            return null;
+        }
+
+        // Retornamos una promesa de actualización directa por PK compuesto
+        return db.Detalle.update([canasta, muni, est, varid], {
+            Enviado: 1,
+            FechaEnvio: new Date().toISOString()
+        });
+    }).filter(op => op !== null); // Descartar los registros inválidos
+
+    if (operaciones.length === 0) return;
+
+    // Ejecutamos todo dentro de una sola transacción de escritura rápida
+    await db.transaction('rw', db.Detalle, async () => {
+        // Promise.all procesa las actualizaciones en paralelo dentro del pipeline de IndexedDB
+        await Promise.all(operaciones);
+    });
 }
 
 /**
@@ -1691,7 +2185,7 @@ async function jsonSeriesPrecios2() {
  * @param {Array} registros - Array de registros con las claves compuestas
  * @returns {Promise<void>}
  */
-async function marcarComoEnviados(registros) {
+async function marcarComoEnviados1(registros) {
     if (!Array.isArray(registros) || registros.length === 0) {
         mostrarMensajeAlertify('marcarComoEnviados: No se proporcionaron registos para actualizar', 'warning');
         return;
@@ -1747,8 +2241,12 @@ async function obtenerValidaMuestra(empleado, canasta, municipio) {
     try {
         // Mostrar el spinner
         spinner.style.display = 'block';
-        // Obtener datos desde la API https://appcepov.inide.gob.ni https://localhost:7062
-        const response = await fetch(`https://appcepov.inide.gob.ni/endpoint/cipp/Validamuestra/${empleado}/${canasta}/${municipio}`,  {
+
+        const endpoint = `${window.APP_CONFIG.apiBase}/Validamuestra/${empleado}/${canasta}/${municipio}`;
+
+        // Obtener datos desde la API 
+        const response = await fetch(endpoint,  {
+        //const response = await fetch(`https://appcepov.inide.gob.ni/endpoint/cipp/Validamuestra/${empleado}/${canasta}/${municipio}`,  {
             method: 'GET',
             headers: {
                 'Accept': 'application/json'
@@ -1873,4 +2371,44 @@ function irMuestra(canasta, municipio, establecimiento) {
     });
 }
 
+// Función para eliminar registros en el almacén 'Detalle' usando el índice compuesto
+// Recibe los tres parámetros: objIdCatCanasta, objCodMuni, objIdEstablecimientoCanasta (todos de tipo int)
+// Valida que los parámetros sean números enteros válidos (no null, undefined, NaN, o no enteros)
+// Luego elimina los registros que coinciden con el filtro en el índice [objIdCatCanasta+objCodMuni+objIdEstablecimientoCanasta]
+async function eliminarRegistrosDetalle(CatCanasta, CodMuni, EstablecimientoCanasta) {
+    // Validar que los parámetros existen y no son null o undefined
+    if (CatCanasta == null || CodMuni == null || EstablecimientoCanasta == null) {
+        throw new Error('Todos los parámetros son requeridos y no pueden ser null o undefined.');
+    }
+
+    // Eliminar los registros que coinciden con la clave en el índice
+    try {
+        const objIdCatCanasta = Number.parseInt(CatCanasta, 10);
+        const objCodMuni = Number.parseInt(CodMuni, 10);
+        const objIdEstablecimientoCanasta = Number.parseInt(EstablecimientoCanasta, 10);
+                
+        // === Paso 2: Buscar en el almacén Detalle ===
+        const claveCompuesta = [
+            objIdCatCanasta,
+            objCodMuni,
+            objIdEstablecimientoCanasta
+        ];
+        
+        // Verificar cuántos registros coinciden (sin eliminar)
+        const registrosCoincidentes = await db.Detalle.where('[objIdCatCanasta+objCodMuni+objIdEstablecimientoCanasta]').equals(claveCompuesta).toArray();
+       
+        if (registrosCoincidentes.length === 0) {
+            mostrarMensaje('No se encontraron registros que coincidan con el filtro.', 'warning');
+            return;  // Salir sin eliminar
+        }
+        
+        // SEGUNDO: Si hay coincidencias, proceder a eliminar
+        const registrosEliminados = await db.Detalle.where('[objIdCatCanasta+objCodMuni+objIdEstablecimientoCanasta]').equals(claveCompuesta).delete();
+        
+        mostrarMensaje(`Registros eliminados exitosamente: ${registrosEliminados}`, 'success');
+    } catch (error) {
+        mostrarMensaje(`Error: ${error.message}`, 'danger');
+        throw error; // Re-lanzar el error para manejo externo si es necesario
+    }
+}
 

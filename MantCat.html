@@ -29,20 +29,20 @@
   </div>
   <div class="row  justify-content-center">
     <div class="col-md-6 d-flex justify-content-center">
-      <button  type="button" class="btn btn-primary" id="btnAutorizar" style="display:none;" data-tabcontinuar="data-tabcontinuar" onclick="AutorizarFueraPeriodo()">
+      <button  type="button" class="btn btn-primary margin-right-10" id="btnAutorizar" style="display:none;" data-tabcontinuar="data-tabcontinuar" onclick="AutorizarFueraPeriodo()">
         <span>Autorizar Usuarios</span>
         <span class="fa fa-database"></span>
       </button>
       <button  type="button" class="btn btn-primary margin-right-10" id="btnUsuario" data-tabcontinuar="data-tabcontinuar" onclick="ImportaU()">
-        <span>Importar Usuarios</span>
+        <span>Usuarios</span>
         <span class="fa fa-database"></span>
       </button>
       <button type="button" class="btn btn-primary margin-right-10" id="btnCatalogos" data-tabcontinuar="data-tabcontinuar" onclick="ImportaCatalogos()" disabled>
-          <span>Importar Catalogos</span>
+          <span>Catalogos</span>
           <span class="fa fa-database"></span>
       </button>
       <button type="button" class="btn btn-primary margin-right-10" id="btnMuestra" data-tabcontinuar="data-tabcontinuar" onclick="ImportaMuestra()" disabled>
-          <span>Importar Muestra</span>
+          <span>Muestra</span>
           <span class="fa fa-database"></span>
       </button>
     </div>
@@ -50,11 +50,15 @@
   <div class="row  justify-content-center mt-1">
     <div class="col-md-6 d-flex justify-content-center">
       <button type="button" class="btn btn-primary margin-right-10" id="btnPrevio" data-tabcontinuar="data-tabcontinuar" onclick="ImportaPrevio()" disabled>
-          <span>Importar Muestra Previa</span>
+          <span>Muestra Previa</span>
+          <span class="fa fa-database"></span>
+      </button>
+      <button type="button" class="btn btn-primary margin-right-10" id="btnObsPrevio" data-tabcontinuar="data-tabcontinuar" onclick="ImportaObs()" disabled>
+          <span>Observaciones y Estados Causales</span>
           <span class="fa fa-database"></span>
       </button>
       <button type="button" class="btn btn-warning margin-right-10" id="btnReiniciar" data-tabcontinuar="data-tabcontinuar" onclick="LimpiarBase()">
-        <span>Reinicar</span>
+        <span>Reiniciar</span>
         <span class="fa fa-database"></span>
       </button>
       <button type="button" class="btn btn-success margin-right-10" data-tabcontinuar="data-tabcontinuar" id="btn-Descargar" value="Descargar" onclick="exportarBaseDeDatos('IPP')">

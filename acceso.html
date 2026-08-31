@@ -1,97 +1,320 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <meta name="theme-color" content="#09F">
-    <title>IPP</title>
-    <link rel="icon" href="img/icon-192.png" type="image/png">
-    <link rel="stylesheet" href="Content/bootstrap.min.css">
-    <!-- <link rel="manifest" href="/manifest.json"> -->
-    <!-- <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then(registration => {
-                        console.log('Service Worker registrado con éxito:', registration);
-                    })
-                    .catch(error => {
-                        console.error('Error registrando Service Worker:', error);
-                    });
-            });
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link rel="stylesheet" href="Content/tailwind.min.css">
+<!-- Recursos locales -->
+<link rel="stylesheet" href="Content/bootstrap-icons.css">
+<!-- <link rel="manifest" href="/manifest.json">
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+                .then(registration => {
+                    console.log('Service Worker registrado con éxito:', registration);
+                })
+                .catch(error => {
+                    console.error('Error registrando Service Worker:', error);
+                });
+        });
+    }
+</script> -->
+<script src="Scripts/dexie.js"></script>
+<script async src="Controller/BaseDatos.js"></script>
+<style>
+        :root {
+            --brand-gradient: linear-gradient(135deg, #0a2540 0%, #164e85 100%);
+            --primary-deep: #0a2540;
+            --accent-blue: #1071f9;
         }
-    </script> -->
-    <script src="Scripts/dexie.js"></script>
-    <script async src="Controller/BaseDatos.js"></script>
-    <style>
+        
         body {
-            background-color: #0d6efd; /* Color de fondo suave */
-        }
-
-        #login-form {
-            background-color: white; /* Fondo blanco para el formulario */
-            padding: 5px; /* Espaciado interno */
-            border-radius: 8px; /* Bordes redondeados */
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Sombra suave */
-            margin-top: 10px; /* Espacio superior reducido */
+            background-color: #f8fafc;
+            min-height: max(884px, 100dvh);
+            /* Usando fuentes del sistema como fallback 884*/
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
         }
 
         .form-label {
             font-weight: bold; /* Negrita para las etiquetas */
             color:blue
         }
-
-        .table {
-            margin: 0; /* Eliminar márgenes de la tabla */
+        
+        .bg-brand-gradient {
+            background: var(--brand-gradient);
+        }
+        
+        .bg-primary-deep {
+            background-color: var(--primary-deep);
+        }
+        
+        .text-accent-blue {
+            color: var(--accent-blue);
+        }
+        
+        .border-accent-blue {
+            border-color: var(--accent-blue);
+        }
+        
+        .focus\:border-accent-blue:focus {
+            border-color: var(--accent-blue);
+        }
+        
+        .focus\:ring-accent-blue\/10:focus {
+            --tw-ring-color: rgba(16, 113, 249, 0.1);
+        }
+        
+        .shadow-primary-deep\/20 {
+            box-shadow: 0 10px 15px -3px rgba(10, 37, 64, 0.2);
+        }
+        
+        /* Estilos para Bootstrap Icons */
+        .bi {
+            font-size: 1.5rem;
+            line-height: 1;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        
+        /* Clases de utilidad para iconos más pequeños */
+        .bi-sm {
+            font-size: 1.25rem;
+        }
+        
+        .bi-xs {
+            font-size: 1rem;
+        }
+        
+        .bi-lg {
+            font-size: 2rem;
         }
 
-        .table img {
-            max-width: 80%; /* Asegurar que la imagen no exceda el ancho de la celda */
-            height: auto; /* Mantener la proporción de la imagen */
+        /* Login: dos columnas desde 600px (por debajo, modo móvil).
+           600–1023px: ancho 5/12 (igual que lg:w-5/12); desde 1024px aplica lg:w-5/12 de Tailwind. */
+        .login-sidebar {
+            display: none;
+        }
+        @media (min-width: 600px) {
+            .login-sidebar {
+                display: flex;
+                flex-shrink: 0;
+            }
+        }
+        /* Tableta / ancho intermedio (p. ej. ≥600px): misma proporción que lg:w-5/12 (5/12) y sin compresión en flex */
+        @media (min-width: 600px) and (max-width: 1023px) {
+            .login-sidebar {
+                width: 41.666667%;
+                flex-basis: 41.666667%;
+                max-width: 41.666667%;
+            }
         }
 
-        .alert {
-            margin-top: 5px; /* Espacio entre el formulario y el mensaje de error */
+        .login-mobile-header {
+            display: flex;
+        }
+        @media (min-width: 600px) {
+            .login-mobile-header {
+                display: none;
+            }
         }
 
-        #error-message {
-            margin-top: 5px; /* Espacio superior reducido para el mensaje de error */
+        .login-mobile-spacer {
+            display: block;
         }
-    </style>
+        @media (min-width: 600px) {
+            .login-mobile-spacer {
+                display: none;
+            }
+        }
+
+        /* px-16 solo 600–1023px; desde 1024px lg:px-24 de Tailwind */
+        @media (min-width: 600px) and (max-width: 1023px) {
+            .login-form-shell {
+                padding-left: 4rem;
+                padding-right: 4rem;
+            }
+        }
+
+        /* Columna izquierda: contenedor para adaptar solo la fila logo + nombre cuando el ancho útil es bajo */
+        @media (min-width: 600px) {
+            .login-sidebar {
+                container-type: inline-size;
+                container-name: login-sidebar;
+            }
+        }
+
+        @container login-sidebar (max-width: 24rem) {
+            .login-sidebar-brandrow {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+
+            .login-sidebar-brandtext {
+                max-width: 100%;
+                min-width: 0;
+            }
+
+            .login-sidebar-brandtext span {
+                max-width: none;
+            }
+        }
+
+        @media (min-width: 600px) {
+            .login-sidebar-logo {
+                flex-shrink: 0;
+            }
+        }
+</style>
+ 
+<title>Acceso-IPP</title>
 </head>
-<body>
-    <div class="container mt-2">
-        <table class="table table-borderless text-center">
-            <tbody>
-                <tr>
-                <td style="width: 10%;"><img alt="Inide Logo" src="img/Inide.png"></td>
-            </tr>
-            <tr>
-                <td>
-                    <div style="text-align:center; color: #edf0f1;">
-                        <h4>INDICE DE PRECIOS AL PRODUCTOR</h4>
-                    </div>
-                </td>
-            </tr>
-            </tbody>
-        </table>
-        <div id="error-message" class="alert alert-danger d-none" role="alert"></div>
-        <div class="container d-flex justify-content-center align-items-center" style="min-height: 40vh;">
-            <form id="login-form" class="w-100" style="max-width: 400px;">
-                <div class="mb-3">
-                    <label for="usuarioId" class="form-label">Usuario</label>
-                    <input type="text" class="form-control" id="usuarioId" required>
+<body class="font-sans antialiased min-h-screen overflow-hidden bg-white">
+<div class="flex w-full h-screen overflow-hidden">
+    <!-- Columna izquierda - Información -->
+    <div class="login-sidebar lg:w-5/12 bg-brand-gradient relative flex-col justify-between p-12 lg:p-20 overflow-hidden">
+        <div class="absolute -top-24 -left-24 w-96 h-96 bg-white/5 rounded-full blur-3xl"></div>
+        
+        <div class="relative z-10">
+            <div class="login-sidebar-brandrow flex items-center gap-6 mb-16">
+                <div class="login-sidebar-logo w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-2xl p-2">
+                    <img alt="INIDE Logo" class="w-full h-full object-contain" src="img/Inide.png"/>
                 </div>
-                <div class="mb-3">
-                    <label for="password" class="form-label">Contraseña</label>
-                    <input type="password" class="form-control" id="password" required>
+                <div class="login-sidebar-brandtext flex flex-col">
+                    <span class="text-white text-xl font-bold leading-tight max-w-[200px]">Instituto Nacional de Información de Desarrollo</span>
                 </div>
-                <button type="submit" class="btn btn-primary w-100">Iniciar Sesión</button>
-                <label>v1.0.0</label>
-            </form>
+            </div>
+            
+            <div class="space-y-6">
+                <div class="space-y-2">
+                    <!-- <span class="text-accent-blue font-bold tracking-[0.3em] text-sm uppercase">Plataforma Oficial</span> -->
+                    <h1 class="text-white text-5xl lg:text-7xl font-extrabold tracking-tighter">IPP</h1>
+                </div>
+                <div class="w-20 h-1.5 bg-accent-blue rounded-full"></div>
+                <div class="space-y-4">
+                    <h2 class="text-white/95 text-3xl font-light leading-tight max-w-md">
+                        ÍNDICE DE PRECIOS AL PRODUCTOR
+                    </h2>
+                    <p class="text-white/70 text-lg leading-relaxed max-w-sm font-light">
+                        Sistema oficial para la gestión y recolección de muestras de precios e indicadores.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="relative z-10">
+            <div class="flex items-center gap-3 text-white/40">
+                <!-- Reemplazado material-symbols-outlined por bi-shield-check -->
+                <i class="bi bi-shield-check text-sm"></i>
+                <span class="text-xs font-medium tracking-widest uppercase">Entorno Seguro de Datos</span>
+            </div>
         </div>
     </div>
-    <script>
+
+    <!-- Columna derecha - Formulario de login -->
+    <div class="flex-1 flex flex-col bg-white overflow-y-auto">
+        <!-- Header móvil -->
+        <div class="login-mobile-header p-6 bg-brand-gradient flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-white rounded-lg p-1 flex items-center justify-center">
+                    
+                     <img alt="INIDE Logo" class="w-full h-full object-contain" src="img/Inide.png"/>
+                </div>
+                <div>
+                    <h2 class="text-white font-bold text-lg leading-none">IPP</h2>
+                    <p class="text-white/60 text-[10px] uppercase tracking-wider">INIDE</p>
+                </div>
+            </div>
+            <span class="text-white/60 text-xs font-mono">v1.0.0</span>
+        </div>
+
+        <!-- Contenido principal -->
+        <div class="login-form-shell flex-1 flex flex-col justify-center px-8 lg:px-24 py-12">
+            <div class="max-w-md w-full mx-auto">
+                <!-- <header class="mb-10 text-center md:text-left">
+                    <h4 class="text-slate-900 text-2xl font-extrabold tracking-tight mb-3">Acceso al Sistema</h4>                    
+                </header> -->
+
+                <div id="error-message" class="alert alert-danger d-none" role="alert"></div>
+                <form id="login-form" class="space-y-6">
+                    <div class="space-y-2">
+                        <label class="form-label block text-slate-700 text-sm font-bold uppercase tracking-widest ml-1">
+                            Usuario
+                        </label>
+                        <div class="relative group">
+                            <!-- Reemplazado material-symbols-outlined por bi-person -->
+                            <i class="bi bi-person absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-accent-blue transition-colors"></i>
+                            <input id="usuarioId" required class="w-full pl-14 pr-6 py-4 rounded-xl border-2 border-slate-100 bg-slate-50 text-slate-900 text-lg focus:ring-4 focus:ring-accent-blue/10 focus:border-accent-blue focus:bg-white transition-all outline-none" placeholder="Ingrese su usuario" type="text"/>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="form-label block text-slate-700 text-sm font-bold uppercase tracking-widest ml-1">
+                            Contraseña
+                        </label>
+                        <div class="relative group">
+                            <!-- Icono de candado -->
+                            <i class="bi bi-lock absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-accent-blue transition-colors z-10 pointer-events-none"></i>
+                            
+                            <!-- Input de Contraseña -->
+                            <input id="password" required 
+                                class="w-full pl-14 pr-6 py-4 rounded-xl border-2 border-slate-100 bg-slate-50 text-slate-900 text-lg focus:ring-4 focus:ring-accent-blue/10 focus:border-accent-blue focus:bg-white transition-all outline-none" 
+                                type="password" 
+                                placeholder="••••••••"/>
+                            
+                            <!-- Checkbox de Mostrar Contraseña (Alineado abajo) -->
+                            <div class="mt-3 flex items-center">
+                                <label for="togglePassword" class="flex items-center cursor-pointer select-none group/check">
+                                    <!-- 
+                                    CLASES CLAVE:
+                                    - w-4 h-4: Tamaño cuadrado estándar.
+                                    - accent-accent-blue: Hace que el color del check sea tu color corporativo.
+                                    - cursor-pointer: Manita al pasar el mouse.
+                                    -->
+                                    <input id="togglePassword" type="checkbox" 
+                                        class="w-4 h-4 text-accent-blue border-slate-300 rounded focus:ring-accent-blue cursor-pointer transition-colors"
+                                        onchange="togglePasswordVisibility()">
+                                    
+                                    <span class="ml-2 text-sm font-medium text-slate-600 group-hover/check:text-slate-800 transition-colors">
+                                        Mostrar Contraseña
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pt-6">
+                        <button class="w-full bg-primary-deep hover:bg-slate-800 text-white font-bold py-5 rounded-xl shadow-xl shadow-primary-deep/20 transition-all flex items-center justify-center gap-3 text-lg active:scale-[0.98]" type="submit">
+                            Acceder
+                            <!-- Reemplazado material-symbols-outlined por bi-box-arrow-in-right -->
+                            <i class="bi bi-box-arrow-in-right"></i>
+                        </button>
+                    </div>
+                    
+                </form>
+
+                <div class="mt-16 pt-8 border-t border-slate-100 flex items-center justify-between">
+                    <button 
+                        class="flex items-center gap-2 text-slate-400 hover:text-accent-blue transition-colors group px-4 py-2 rounded-lg hover:bg-slate-50"
+                        onclick="exportarBaseDeDatos('IPP')">
+                        <!-- Icono -->
+                        <i class="bi bi-database text-xl group-hover:scale-110 transition-transform"></i>
+                                                
+                        <span class="text-xs font-bold uppercase tracking-widest">EXPORTAR DB</span>
+                    </button>
+                    <div class="flex items-center gap-3 px-4 py-2 bg-slate-50 rounded-lg">
+                        <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                        <span class="text-slate-500 text-xs font-mono font-bold tracking-tight">v2.0.0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="login-mobile-spacer h-8 w-full"></div>
+    </div>
+</div>
+<script>
         const errorMessageDiv = document.getElementById('error-message');
         errorMessageDiv.classList.add('d-none');
 
@@ -132,6 +355,18 @@
             await IniciarBaseDatos();
         });  
 
+        function togglePasswordVisibility() {
+            const passwordInput = document.getElementById('password');
+            const toggleCheckbox = document.getElementById('togglePassword');
+            
+            // Verificamos el estado REAL del checkbox (checked = true/false)
+            if (toggleCheckbox.checked) {
+                passwordInput.type = 'text';
+            } else {
+                passwordInput.type = 'password';
+            }
+        }
+
         // Bloqueo de atajos de teclado
         document.addEventListener("keydown", function(e) {
             // Bloquear F12
@@ -165,6 +400,42 @@
             }
         });
 
+        async function exportarBaseDeDatos(nombreDB) {
+            // Inicializa la base de datos
+            const db = new Dexie(nombreDB);
+            
+            // Abre la base de datos
+            await db.open();
+        
+            // Obtiene todas las tablas
+            const tablas = await db.tables;
+        
+            // Crea un objeto para almacenar los datos
+            const datosExportados = {};
+        
+            // Recorre cada tabla y obtiene los datos
+            for (const tabla of tablas) {
+                datosExportados[tabla.name] = await tabla.toArray();
+            }
+        
+            // Convierte el objeto a una cadena JSON
+            const datosJSON = JSON.stringify(datosExportados, null, 2);
+        
+            // Crea un blob con los datos JSON
+            const blob = new Blob([datosJSON], { type: 'application/json' });
+        
+            // Crea un enlace para descargar el archivo
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${nombreDB}.json`;
+            document.body.appendChild(a);
+            a.click();
+        
+            // Limpia el enlace
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
     </script>
     <script>
         var Base64 = {

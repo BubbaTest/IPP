@@ -9,11 +9,14 @@ const CACHE_VERSION = 'v1.0.0';
 const CACHE_STATIC_NAME = getCacheName(`static-${CACHE_VERSION}`);
 const CACHE_DYNAMIC_NAME = getCacheName(`dynamic-${CACHE_VERSION}`);
 const CACHE_INMUTABLE_NAME = getCacheName(`inmutable-${CACHE_VERSION}`);
+//const CACHE_STATIC_NAME  = `static-${CACHE_VERSION}`;
+//const CACHE_DYNAMIC_NAME = `dynamic-${CACHE_VERSION}`;
+//const CACHE_INMUTABLE_NAME = `inmutable-${CACHE_VERSION}`;
 
 // Página offline para fallback
 const OFFLINE_PAGE = '/offline.html';
 
-// Recursos estáticos propios de la appa
+// Recursos estáticos propios de la app
 const ASSETS_TO_CACHE_STATIC = [
     '/',
     'favicon.ico',
@@ -24,9 +27,11 @@ const ASSETS_TO_CACHE_STATIC = [
     '/GrabaMuestra.html',
     '/MantCat.html',
     '/offline.html',
+    '/revertirCausal.html',
     '/img/icon-192.png',
     '/img/icon-512.png',
     '/img/Inide.png',
+    '/config.js',
     '/Controller/Muestra.js',
     '/Controller/BaseDatos.js',
 ];
@@ -41,6 +46,7 @@ const ASSETS_TO_CACHE_INMUTABLE = [
     '/Content/alertify/alertify.min.css',
     '/Content/alertify/default.min.css',
     '/Content/alertify/semantic.min.css',
+	'/Content/tailwind.min.css',
     '/Scripts/bootstrap.bundle.min.js',
     '/Scripts/jquery-3.5.1.min.js',
     '/Scripts/dexie.js',
@@ -91,7 +97,7 @@ self.addEventListener('activate', event => {
 // Estrategia fetch: Cache First con fallback a red y actualización dinámica de caché
 self.addEventListener('fetch', event => {
     //! if (event.request.method !== 'GET') return;
-     const url = new URL(event.request.url);
+    const url = new URL(event.request.url);
     
     // Helper para identificar solicitudes a la API externa
     const isExternalAPI = () => {
@@ -144,6 +150,15 @@ self.addEventListener('fetch', event => {
                         return networkResponse;
                     }
 
+                    // 2. Validación de seguridad y calidad antes de cachear
+                    // - networkResponse.status !== 200: Solo guardamos éxitos totales.
+                    // - networkResponse.type !== 'basic': Evitamos cachear CDNs externos o CORS 
+                    //   opacos que pueden dar problemas de cuota o seguridad.
+                    if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+                        return networkResponse;
+                    }
+
+                    // 3. Si pasa los filtros, clonamos y guardamos en caché dinámico
                     const responseToCache = networkResponse.clone();
                     caches.open(`${CACHE_DYNAMIC_NAME}-${CACHE_VERSION}`).then(cache => {
                         cache.put(event.request, responseToCache);

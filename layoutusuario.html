@@ -18,6 +18,10 @@
     <link rel="stylesheet" href="Content/alertify/default.min.css">
     <link rel="stylesheet" href="Content/alertify/semantic.min.css">
     <style>
+        html {
+            scroll-behavior: smooth;
+        }
+
         @media (max-width: 768px) {
         .container {
             width: 100%;
@@ -115,6 +119,7 @@
                                 <li><a class="dropdown-item" href="#" onclick="loadView('ListaEstablecimientosPendientes.html'); collapseMenu()">Establecimientos</a></li>
                             </ul>
                         </li>
+                        <li class="nav-item"><a class="nav-link" href="#" onclick="loadView('revertirCausal.html'); collapseMenu()">Revertir</a></li>                        
                         <li class="nav-item"><a class="nav-link" href="#" onclick="cerrarSesion()">Salir</a></li>
                     </ul>
                 </div>
@@ -136,6 +141,7 @@
     <input type="hidden" id="lblLongitud">
     <input type="hidden" id="lblLatitud">
 
+    <script src="config.js"></script>
     <script async src="Controller/BaseDatos.js"></script>
     <script async src="Controller/Muestra.js"></script>
 
@@ -199,6 +205,16 @@
                                 cargarSelect('Municipios', municipioSelect, 'iD_Muni', 'noM_MUNI', 'iD_Muni', 'objIdCatCanasta', Number.parseInt($(this).val()));
                             }
                         });
+                        
+                        // 🔍 Inicializar Select2 después de cargar los datos
+                        $('.sel').select2({
+                            placeholder: 'Seleccionar opción',
+                            allowClear: true,
+                            width: '100%'
+                        });
+                    }
+                    else if  (view === 'revertirCausal.html') {
+                        SetupRevertir();               
                         
                         // 🔍 Inicializar Select2 después de cargar los datos
                         $('.sel').select2({

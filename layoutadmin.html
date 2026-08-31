@@ -123,6 +123,8 @@
 
     <input type="hidden" id="hidden-usuarioId">
 
+    <!-- 1. PRIMERO se carga la configuración global -->
+    <script src="config.js"></script>
     <script async src="Controller/BaseDatos.js"></script>
 
     <script> 
@@ -184,7 +186,12 @@
                     mostrarMensaje(`${result.message}`, "success");
                     $("#btnCatalogos").prop("disabled", false);
                     $("#btnMuestra").prop("disabled", false);   
-                    $("#btnPrevio").prop("disabled", false);                 
+                    $("#btnPrevio").prop("disabled", false); 
+                    $("#btnObsPrevio").prop("disabled", false); 
+                    // 2. Vibrar al finalizar exitosamente
+					if ('vibrate' in navigator) {
+					  navigator.vibrate(150); // 150 ms de vibración
+					}                
                 } else {
                     mostrarMensaje(`Error al importar usuarios: ${result.message}`, "error");                    
                 }
@@ -215,7 +222,13 @@
                     mostrarMensaje(`${result.message}`, "success");
                     $("#btnCatalogos").prop("disabled", false);
                     $("#btnMuestra").prop("disabled", false);
+                    $("#btnPrevio").prop("disabled", false);
+                    $("#btnObsPrevio").prop("disabled", false); 
                     $("#btlEliminaBase").prop("disabled", false);
+                    // 2. Vibrar al finalizar exitosamente
+					if ('vibrate' in navigator) {
+					  navigator.vibrate(150); // 150 ms de vibración
+					}
                   
                 } else {
                     mostrarMensaje(`Error al importar usuarios: ${result.message}`, "error");                    
@@ -238,6 +251,10 @@
                 const result = await obtenerAlmacenarCatalogos(Empleado);
                 if (result.success) {
                     mostrarMensaje(`${result.message}`, "success"); 
+                    // 2. Vibrar al finalizar exitosamente
+					if ('vibrate' in navigator) {
+					  navigator.vibrate(150); // 150 ms de vibración
+					}
                 } else {
                     mostrarMensaje(`Error al importar catalogos: ${result.message}`, "error"); 
                 }
@@ -259,6 +276,10 @@
                 const result = await obtenerAlmacenarMuestra(Empleado);
                 if (result.success) {
                     mostrarMensaje(`${result.message}`, "success"); 
+                    // 2. Vibrar al finalizar exitosamente
+					if ('vibrate' in navigator) {
+					  navigator.vibrate(150); // 150 ms de vibración
+					}
                 } else {
                     mostrarMensaje(`Error al importar catalogos: ${result.message}`, "error"); 
                 }
@@ -280,8 +301,38 @@
                 const result = await obtenerAlmacenarPrevio(Empleado);
                 if (result.success) {
                     mostrarMensaje(`${result.message}`, "success"); 
+                    // 2. Vibrar al finalizar exitosamente
+					if ('vibrate' in navigator) {
+					  navigator.vibrate(150); // 150 ms de vibración
+					}
                 } else {
                     mostrarMensaje(`Error al importar muestra previa: ${result.message}`, "error"); 
+                }
+            } catch (error) {
+                mostrarMensaje(`Error inesperado: ${error.message}`, "error"); 
+            }
+        }
+
+        async function ImportaObs() {
+             const Empleado = document.querySelector('#empleado').value.toUpperCase();
+
+            // Validar al menos un empleado seleccionado
+            if (!Empleado) {
+                mostrarMensaje("Por favor, digite código de empleado.", "error");
+                return;
+            }
+
+            try {
+                const result = await obtenerAlmacenarobs(Empleado);
+                
+                if (result.success) {
+                    mostrarMensaje(`${result.message}`, "success"); 
+                    // 2. Vibrar al finalizar exitosamente
+					if ('vibrate' in navigator) {
+					  navigator.vibrate(150); // 150 ms de vibración
+					}
+                } else {
+                    mostrarMensaje(`Error al importar Observaciones previa: ${result.message}`, "error"); 
                 }
             } catch (error) {
                 mostrarMensaje(`Error inesperado: ${error.message}`, "error"); 

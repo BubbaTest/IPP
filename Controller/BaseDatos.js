@@ -1,3 +1,4 @@
+'use strict';
 // Inicializar la base de datos Dexie
 const db = new Dexie('IPP');
 
@@ -5,7 +6,7 @@ const db = new Dexie('IPP');
 db.version(1).stores({
     Users: 'UsuarioId',
 	Muestra: '[objIdCatCanasta+objIdEstablecimientoCanasta+objIdCatVariedad], objIdEstablecimientoCanasta, objIdCatCanasta',
-	Variedades: '[objIdCatCanasta+objIdEstablecimientoCanasta+objIdCatVariedad],[objIdCatCanasta+objIdEstablecimientoCanasta]',
+	Variedades: '[objIdCatCanasta+objIdEstablecimientoCanasta+objIdCatVariedad],[objIdCatCanasta+objIdEstablecimientoCanasta], objIdCatVariedad',
     Establecimientos: '[idCatCanasta+objCodMuni+idEstablecimientoCanasta], [idCatCanasta+objCodMuni],idEstablecimientoCanasta',
 	Calendario: 'fecha,[idCalendario+fecha]',
 	Municipios: '[iD_Muni+objIdCatCanasta], iD_Muni, objIdCatCanasta',	
@@ -14,8 +15,10 @@ db.version(1).stores({
 	Estados: 'idCatValorCatalogo',
 	Monedas: 'idCatValorCatalogo',
 	TipoCambio: 'fecha',
-	UnidadMedida: 'objIdCatVariedad, [objIdCatVariedad+objURecolId]',
-	MuestraPrevia: '[objIdEstablecimientoCanasta+objIdCatVariedad]',
+	UnidadMedida: '[objIdCatVariedad+objURecolId], objIdCatVariedad',
+    MuestraPreviaObs: '[objIdEstablecimientoCanasta+objIdCatVariedad]',
+    MuestraPreviaEstadoCausal: 'objIdEstablecimientoCanasta',
+	MuestraPrevia: '[objIdEstablecimientoCanasta+objIdCatVariedad], objIdEstablecimientoCanasta',
     Detalle: '[objIdCatCanasta+objCodMuni+objIdEstablecimientoCanasta+objIdCatVariedad], [objIdCatCanasta+objCodMuni+objIdEstablecimientoCanasta], [objIdCatCanasta+objCodMuni], [objIdEstablecimientoCanasta+objIdCatVariedad], Enviado'
 });
 
@@ -57,15 +60,32 @@ async function validarLogin(usuarioId, password) {
 
 async function obtenerAlmacenarUsuarios(empleado) {
     try {
-         // Mostrar el spinner https://localhost:7062 https://appcepov.inide.gob.ni
-        spinner.style.display = 'block';
-        const response = await fetch(`https://appcepov.inide.gob.ni/endpoint/cipp/Connecter/${empleado}`, {
+         // 1. Validación defensiva: Asegurarnos de que el config exista
+        if (!window.APP_CONFIG || !window.APP_CONFIG.apiBase) {
+            throw new Error('Error crítico: window.APP_CONFIG.apiBase no está definido. Verifica que config.js se cargue antes.');
+        }
+
+        // 2. Construcción dinámica de la URL
+        const endpoint = `${window.APP_CONFIG.apiBase}/Connecter/${empleado}`;
+        
+         // Mostrar el spinner
+        spinner.style.display = 'block';       
+
+        const response = await fetch(endpoint, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json'
             },
             mode: 'cors'
         });
+
+        // const response = await fetch(`https://appserviciosbe.inide.gob.ni/endpoint/cipp/Connecter/${empleado}`, {
+        //     method: 'POST',
+        //     headers: {
+        //         'Accept': 'application/json'
+        //     },
+        //     mode: 'cors'
+        // });        
 
         if (!response.ok) {
             const errorResponse = await response.json();
@@ -103,9 +123,13 @@ async function obtenerAlmacenarUsuarios(empleado) {
 
 async function obtenerAlmacenarCatalogos(empleado) {
     try {
+        // 2. Construcción dinámica de la URL
+        const endpoint = `${window.APP_CONFIG.apiBase}/Catalogos/${empleado}`;
+
          // Mostrar el spinner
         spinner.style.display = 'block';
-        const response = await fetch(`https://appcepov.inide.gob.ni/endpoint/cipp/Catalogos/${empleado}`, {
+        const response = await fetch(endpoint, {
+        //const response = await fetch(`https://appserviciosbe.inide.gob.ni/endpoint/cipp/Catalogos/${empleado}`, {
             method: 'GET',
             headers: {
                 'Accept': 'application/json'
@@ -188,10 +212,13 @@ async function obtenerAlmacenarCatalogos(empleado) {
 }
 
 async function obtenerAlmacenarMuestra(empleado) {
-    try { // https://appcepov.inide.gob.ni https://localhost:7062
+    try { 
+        const endpoint = `${window.APP_CONFIG.apiBase}/Muestra/${empleado}`;
+
          // Mostrar el spinner
         spinner.style.display = 'block';
-        const response = await fetch(`https://appcepov.inide.gob.ni/endpoint/cipp/Muestra/${empleado}`, {
+        const response = await fetch(endpoint, {
+        //const response = await fetch(`https://appserviciosbe.inide.gob.ni/endpoint/cipp/Muestra/${empleado}`, {
             method: 'GET',
             headers: {
                 'Accept': 'application/json'
@@ -221,15 +248,16 @@ async function obtenerAlmacenarMuestra(empleado) {
                 nVeces: Number.parseInt(inf.nVeces),
                 nombreEstablecimiento: inf.nombreEstablecimiento,
                 nombreVariedad: inf.nombreVariedad.trim(),
-                nombreCanasta: inf.nombreCanasta.trim()
+                nombreCanasta: inf.nombreCanasta.trim(),
             };
             muestras.push(muestra);
 
             const variedad = {
                 objIdCatCanasta: inf.objIdCatCanasta,
                 objIdEstablecimientoCanasta: inf.objIdEstablecimientoCanasta,
-                objIdCatVariedad: inf.objIdCatVariedad,
-                nombreVariedad: inf.nombreVariedad
+                objIdCatVariedad: inf.objIdCatVariedad, 
+                nombreVariedad: inf.nombreVariedad,
+                codigo: inf.codigo.trim(),
             };
             variedades.push(variedad);
         });
@@ -252,6 +280,7 @@ async function obtenerAlmacenarMuestra(empleado) {
                 direccion: inf.direccion,
                 diaHabil: Number.parseInt(inf.diaHabil),
                 FechaDefinidaRecoleccion: inf.fechaDefinidaRecoleccion,
+                codigo: inf.codigo.trim(),
             })));
         });
 
@@ -272,10 +301,13 @@ async function obtenerAlmacenarMuestra(empleado) {
 }
 
 async function obtenerAlmacenarPrevio(empleado) {
-    try { // https://appcepov.inide.gob.ni https://localhost:7062
-        // Mostrar el spinner
+    try { 
+        const endpoint = `${window.APP_CONFIG.apiBase}/Previo/${empleado}`;
+
+         // Mostrar el spinner
         spinner.style.display = 'block';
-        const response = await fetch(`https://appcepov.inide.gob.ni/endpoint/cipp/Previo/${empleado}`, {
+        const response = await fetch(endpoint, {
+        //const response = await fetch(`https://appserviciosbe.inide.gob.ni/endpoint/cipp/Previo/${empleado}`, {
             method: 'GET',
             headers: {
                 'Accept': 'application/json'
@@ -288,7 +320,7 @@ async function obtenerAlmacenarPrevio(empleado) {
         }
 
         const catalog = await response.json();
-
+        
         if (!catalog || !Array.isArray(catalog)) {
             throw new Error('Formato de respuesta inválido');
         }
@@ -304,7 +336,8 @@ async function obtenerAlmacenarPrevio(empleado) {
                 nVeces: Number.parseInt(inf.nVeces),
                 nombreEstado: inf.nombreEstado.trim(),               
                 tasaCambio: Number.parseFloat(inf.tasaCambio),
-                ObjIdUnidRecolectada : Number.parseInt(inf.objIdUnidRecolectada)
+                ObjIdUnidRecolectada : Number.parseInt(inf.objIdUnidRecolectada),
+                Observacion: inf.observacion
             })));
         });
 
@@ -318,6 +351,130 @@ async function obtenerAlmacenarPrevio(empleado) {
             success: false,
             message: error.message
         };
+    } finally {
+        // Ocultar el spinner
+        spinner.style.display = 'none';
+    }
+}
+
+async function obtenerAlmacenarobs(empleado) {
+    try { 
+        const endpoint = `${window.APP_CONFIG.apiBase}/MuestraPre_Completa/${empleado}`;
+
+         // Mostrar el spinner
+        spinner.style.display = 'block';
+        const response = await fetch(endpoint, {
+        //const response = await fetch(`https://localhost:7062/endpoint/cipp/MuestraPre_Completa/${empleado}`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json'
+            },
+            mode: 'cors'
+        });
+
+        if (!response.ok) {
+            throw new Error(`Error en la solicitud HTTP: ${response.status}`);
+        }
+
+        const catalog = await response.json();
+
+         if (!catalog || !Array.isArray(catalog.observacionesPrevias) || !Array.isArray(catalog.estadosCausales)) {
+            throw new Error('Formato de respuesta inválido');
+        }
+        
+        await db.transaction('rw', db.MuestraPreviaObs, db.MuestraPreviaEstadoCausal, async () => {
+            await db.MuestraPreviaObs.bulkPut(catalog.observacionesPrevias.map(inf => ({
+                objIdEstablecimientoCanasta: Number.parseInt(inf.objIdEstablecimientoCanasta),
+                objIdCatVariedad: Number.parseInt(inf.objIdCatVariedad),
+                Observacion: inf.observacion
+            })));
+
+            await db.MuestraPreviaEstadoCausal.bulkPut(catalog.estadosCausales.map(inf => ({
+                objIdEstablecimientoCanasta: Number.parseInt(inf.objIdEstablecimientoCanasta),
+                nombreEstado: inf.nombreEstado
+            })));
+        // if (!catalog || !Array.isArray(catalog)) {
+        //     throw new Error('Formato de respuesta inválido');
+        // }
+       
+        // await db.transaction('rw', db.MuestraPreviaObs, async () => {
+        //     await db.MuestraPreviaObs.bulkPut(catalog.map(inf => ({
+        //         objIdEstablecimientoCanasta: Number.parseInt(inf.objIdEstablecimientoCanasta),
+        //         objIdCatVariedad: Number.parseInt(inf.objIdCatVariedad),
+        //         Observacion: inf.observacion
+        //     })));
+        // });
+
+        });
+
+        return {
+            success: true,
+            message: `Datos almacenados: ${catalog.observacionesPrevias.length} Observaciones , ${catalog.estadosCausales.length} Estados Causales `
+        };
+
+    } catch (error) {
+        return {
+            success: false,
+            message: error.message
+        };
+    } finally {
+        // Ocultar el spinner
+        spinner.style.display = 'none';
+    }
+}
+
+async function obtenerPermisoAlmacenar(empleado, usuario, clave) {
+    try {
+        let url = `${window.APP_CONFIG.apiBase}/Einkommen/${empleado}/${usuario}`;
+
+         // Mostrar el spinner
+        spinner.style.display = 'block';
+        
+        // Construir la URL base 
+        //let url = `https://appserviciosbe.inide.gob.ni/endpoint/cipp/Einkommen/${empleado}/${usuario}`;
+
+        // Agregar clave a la URL
+        if (clave) {
+            url += `?clave=${encodeURIComponent(clave)}`;
+        }
+        
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json'
+            },
+            mode: 'cors'
+        });
+
+         if (!response.ok) {
+            // Capturar el mensaje de error del cuerpo de la respuesta
+            const errorResponse = await response.json();
+            const errorMessage = errorResponse.mensaje || `Error en la solicitud HTTP: ${response.status}`;
+            throw new Error(errorMessage);
+        }
+
+        const user = await response.json();
+       
+        if (!user?.usuario) {
+            throw new Error('Formato de Respuesta No Válido');
+        }
+
+        // Eliminar usuarios existentes excepto admin y Autoriza
+        const existingUsers = await db.Users.toCollection().primaryKeys();
+        const usersToDelete = existingUsers.filter(key => key !== 'administrador' && key !== 'Autoriza');
+        if (usersToDelete.length > 0) {
+            await db.Users.bulkDelete(usersToDelete);
+        }
+
+        // Almacenar nuevo usuario
+        await db.Users.put({
+            UsuarioId: user.usuario,
+            password: user.pass
+        });
+
+        return { success: true, message: 'Usuarios importados y almacenados correctamente.' };
+    } catch (error) {
+        return { success: false, message: error.message };
     } finally {
         // Ocultar el spinner
         spinner.style.display = 'none';
